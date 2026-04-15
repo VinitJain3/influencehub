@@ -1,0 +1,6 @@
+# IDEs and OS files
+.idea/
+.DS_Store
+
+# Scripts
+commit_script.ps1
