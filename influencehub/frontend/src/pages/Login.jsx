@@ -28,15 +28,10 @@ export default function Login() {
       if (rememberMe) localStorage.setItem('savedEmail', data.email)
       navigate(res.data.role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard')
     } catch (err) {
-      // DEMO BYPASS: Allows UI testing without a backend connected
-      const role = data.email.includes('influencer') || data.email.includes('creator') ? 'influencer' : 'brand'
-      login({ name: 'Demo User', email: data.email }, 'demo-token', role)
-      toast.success(`Demo Login (${role})`)
-      navigate(role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard')
-      return;
-
       if (err.response?.status === 401) {
         setError('email', { message: 'Invalid email or password' })
+      } else if (err.response?.status === 404) {
+        setError('email', { message: 'No account found with this email' })
       } else {
         toast.error('Login failed', 'Please try again later.')
       }
@@ -141,7 +136,7 @@ export default function Login() {
             variant="ghost-dark"
             fullWidth
             className="!h-[48px]"
-            onClick={() => { window.location.href = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/auth/google' }}
+            onClick={() => { window.location.href = (import.meta.env.VITE_API_URL || 'http://localhost:8082') + '/api/auth/google' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" className="mr-[4px]">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>

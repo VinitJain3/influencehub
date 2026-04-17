@@ -16,18 +16,25 @@ public class BrandProfile {
     private String brandName;
     private String website;
     private String industry;
+
+    @Column(length = 500)
     private String description;
+
     private String instagramHandle;
     private String location;
     private String logoUrl;
-    // optional
+
     private String budgetRange;
     private String linkedin;
     private String youtube;
     private Integer followers;
     private Boolean verified;
 
-    //One-to-One with User
+    // Fields sent by frontend registration form
+    private String contentTypes;       // stored as comma-separated
+    private String influencerSize;
+    private String platforms;          // stored as comma-separated
+
     @OneToOne
     @JoinColumn(name = "user_id")
     private User user;
