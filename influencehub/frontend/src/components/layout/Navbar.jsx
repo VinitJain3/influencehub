@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 
 function MarketingNavbar() {
+  const navigate = useNavigate()
   return (
     <nav className="h-[64px] bg-white border-b border-[#E0E0DB] px-[80px] flex items-center justify-between fixed top-0 left-0 right-0 z-[100]">
       <Link to="/"><Logo size="md" /></Link>
@@ -17,33 +18,33 @@ function MarketingNavbar() {
       </div>
       <div className="flex items-center gap-[12px]">
         <Link to="/login" className="text-[14px] font-medium text-[#444444] hover:text-[#1C1C1C] transition-colors">Sign In</Link>
-        <Link to="/register"><Button size="sm">Join Free</Button></Link>
+        <Button size="sm" onClick={() => navigate('/register')}>Join Free</Button>
       </div>
     </nav>
   )
 }
 
 function AuthNavbar() {
+  const navigate = useNavigate()
   return (
     <nav className="h-[60px] bg-white border-b border-[#E0E0DB] px-[40px] flex items-center justify-between fixed top-0 left-0 right-0 z-[100]">
       <Link to="/"><Logo size="md" /></Link>
       <div className="flex items-center gap-[12px]">
         <span className="text-[13px] text-[#888888]">Already have an account?</span>
-        <Link to="/login"><Button variant="ghost-dark" size="sm">Log In</Button></Link>
+        <Button variant="ghost-dark" size="sm" onClick={() => navigate('/login')}>Log In</Button>
       </div>
     </nav>
   )
 }
 
 function AppNavbar() {
-  const { user, role, logout } = useAuthStore()
+  const { user, role, logout } = useAuthStore((s) => s)
   const unreadCount = useNotificationStore((s) => s.unreadCount)
   const navigate = useNavigate()
 
   const menuItems = [
     { label: 'View Profile', icon: User, onClick: () => navigate(role === 'brand' ? '/brand/profile' : '/influencer/profile') },
     { label: 'Account Settings', icon: Settings, onClick: () => navigate('/settings') },
-    { label: 'Billing', icon: CreditCard, onClick: () => navigate('/settings#billing') },
     { divider: true },
     { label: 'Sign Out', icon: LogOut, danger: true, onClick: () => { logout(); navigate('/login') } },
   ]

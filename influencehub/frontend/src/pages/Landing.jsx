@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { UserPlus, Search, Handshake, Check } from 'lucide-react'
 import { useState } from 'react'
@@ -9,6 +9,7 @@ import Avatar from '../components/ui/Avatar'
 
 export default function Landing() {
   const [billingCycle, setBillingCycle] = useState('monthly')
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen">
@@ -32,12 +33,8 @@ export default function Landing() {
               Connect with verified creators across India. Launch campaigns, manage collaborations, and grow your brand — all in one platform.
             </p>
             <div className="flex gap-[12px] mt-[36px]">
-              <Link to="/register?role=brand">
-                <Button size="lg">I'm a Brand →</Button>
-              </Link>
-              <Link to="/register?role=influencer">
-                <Button variant="ghost-dark" size="lg">I'm an Influencer</Button>
-              </Link>
+              <Button size="lg" onClick={() => navigate('/register?role=brand')}>I'm a Brand →</Button>
+              <Button variant="ghost-dark" size="lg" onClick={() => navigate('/register?role=influencer')}>I'm an Influencer</Button>
             </div>
           </motion.div>
 
@@ -119,64 +116,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="bg-[#F5F5F0] py-[80px] px-[80px]">
-        <div className="text-center">
-          <p className="text-[11px] font-bold text-[#108A00] uppercase tracking-[2px] mb-[8px]">Pricing</p>
-          <h2 className="text-[28px] font-bold text-[#1C1C1C] mb-[16px]">Simple, Transparent Pricing</h2>
-          <div className="inline-flex border border-[#E0E0DB] rounded-full overflow-hidden mb-[32px]">
-            {['monthly', 'yearly'].map((cycle) => (
-              <button
-                key={cycle}
-                onClick={() => setBillingCycle(cycle)}
-                className={`px-[20px] py-[8px] text-[13px] font-semibold transition-colors cursor-pointer ${
-                  billingCycle === cycle ? 'bg-[#108A00] text-white' : 'bg-white text-[#888888]'
-                }`}
-              >
-                {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 max-w-[760px] mx-auto mt-[32px] gap-[20px]">
-          {/* Free Plan */}
-          <div className="bg-white border border-[#E0E0DB] rounded-[16px] p-[32px]">
-            <p className="text-[11px] font-semibold text-[#888888] uppercase tracking-[1px] mb-[4px]">Free</p>
-            <p className="text-[32px] font-extrabold text-[#1C1C1C]">₹0<span className="text-[14px] font-medium text-[#888888]">/month</span></p>
-            <ul className="mt-[20px] space-y-[12px] mb-[24px]">
-              {['Up to 5 campaign posts', 'Basic creator search', 'Email support'].map((f, i) => (
-                <li key={i} className="flex items-center gap-[8px] text-[14px] text-[#444444]">
-                  <Check size={16} className="text-[#108A00]" /> {f}
-                </li>
-              ))}
-            </ul>
-            <Link to="/register"><Button variant="ghost-green" fullWidth>Get Started</Button></Link>
-          </div>
-          {/* Pro Plan */}
-          <div className="bg-white border-2 border-[#108A00] rounded-[16px] p-[32px] relative">
-            <span className="absolute -top-[1px] left-1/2 -translate-x-1/2 bg-[#108A00] text-white text-[11px] font-bold px-[14px] py-[4px] rounded-b-[8px]">
-              MOST POPULAR
-            </span>
-            <p className="text-[11px] font-semibold text-[#108A00] uppercase tracking-[1px] mb-[4px]">Pro</p>
-            <p className="text-[32px] font-extrabold text-[#1C1C1C]">
-              {billingCycle === 'monthly' ? '₹2,200' : '₹1,760'}
-              <span className="text-[14px] font-medium text-[#888888]">/month</span>
-            </p>
-            {billingCycle === 'yearly' && (
-              <p className="text-[12px] text-[#108A00] font-medium">Save 20% annually</p>
-            )}
-            <ul className="mt-[20px] space-y-[12px] mb-[24px]">
-              {['Unlimited campaigns', 'Advanced analytics & filters', 'Priority support', 'Team collaboration'].map((f, i) => (
-                <li key={i} className="flex items-center gap-[8px] text-[14px] text-[#444444]">
-                  <Check size={16} className="text-[#108A00]" /> {f}
-                </li>
-              ))}
-            </ul>
-            <Link to="/register?plan=pro"><Button fullWidth>Go Pro</Button></Link>
-          </div>
-        </div>
-      </section>
 
       <Footer />
     </div>

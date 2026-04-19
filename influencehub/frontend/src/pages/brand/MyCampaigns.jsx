@@ -15,7 +15,7 @@ import Input from '../../components/ui/Input'
 import { useToast } from '../../store/toastStore'
 import client from '../../api/client'
 
-const tabs = ['all','active','paused','closed','draft']
+const tabs = ['all', 'active', 'paused', 'closed', 'draft']
 
 export default function MyCampaigns() {
   const [activeTab, setActiveTab] = useState('all')
@@ -30,9 +30,9 @@ export default function MyCampaigns() {
 
   const fetchCampaigns = () => {
     setLoading(true)
-    client.get('/api/brand/campaigns', { params: { status: activeTab === 'all' ? undefined : activeTab, page } })
+    client.get('/api/campaigns/brand', { params: { status: activeTab === 'all' ? undefined : activeTab, page } })
       .then(res => { setCampaigns(res.data.campaigns || []); setTotal(res.data.total || 0) })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }
 
@@ -66,9 +66,8 @@ export default function MyCampaigns() {
       <div className="flex gap-[4px] mb-[20px]">
         {tabs.map(tab => (
           <button key={tab} onClick={() => { setActiveTab(tab); setPage(1) }}
-            className={`px-[16px] py-[8px] rounded-full text-[13px] font-medium capitalize cursor-pointer transition-colors ${
-              activeTab === tab ? 'bg-[#E8F5E6] text-[#108A00] border border-[#108A00]' : 'bg-white border border-[#E0E0DB] text-[#888888] hover:border-[#108A00]'
-            }`}>
+            className={`px-[16px] py-[8px] rounded-full text-[13px] font-medium capitalize cursor-pointer transition-colors ${activeTab === tab ? 'bg-[#E8F5E6] text-[#108A00] border border-[#108A00]' : 'bg-white border border-[#E0E0DB] text-[#888888] hover:border-[#108A00]'
+              }`}>
             {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
@@ -77,7 +76,7 @@ export default function MyCampaigns() {
       {/* Table */}
       <Card className="!p-0 overflow-hidden">
         {loading ? (
-          <div className="p-[20px] space-y-[8px]">{[1,2,3,4,5,6].map(i => <Skeleton key={i} height={60} />)}</div>
+          <div className="p-[20px] space-y-[8px]">{[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} height={60} />)}</div>
         ) : !campaigns.length ? (
           <EmptyState icon={Megaphone} title="No campaigns found" description="Create your first campaign to start connecting with creators."
             action={{ label: 'Post Campaign', onClick: () => navigate('/brand/campaigns/new') }} />
@@ -85,7 +84,7 @@ export default function MyCampaigns() {
           <table className="w-full" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="bg-[#FAFAF8] border-b border-[#F0F0EB]">
-                {[{l:'Campaign',w:'32%'},{l:'Status',w:'10%'},{l:'Budget',w:'12%'},{l:'Requests',w:'10%'},{l:'Accepted',w:'10%'},{l:'Posted',w:'12%'},{l:'Actions',w:'14%'}].map(h => (
+                {[{ l: 'Campaign', w: '32%' }, { l: 'Status', w: '10%' }, { l: 'Budget', w: '12%' }, { l: 'Requests', w: '10%' }, { l: 'Accepted', w: '10%' }, { l: 'Posted', w: '12%' }, { l: 'Actions', w: '14%' }].map(h => (
                   <th key={h.l} style={{ width: h.w }} className="text-left px-[20px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase">{h.l}</th>
                 ))}
               </tr>
@@ -111,7 +110,7 @@ export default function MyCampaigns() {
                       items={[
                         { label: 'Edit', icon: Edit, onClick: () => navigate(`/brand/campaigns/${c.id}/edit`) },
                         c.status === 'paused' ? { label: 'Resume', icon: Play, onClick: () => updateStatus(c.id, 'active') } :
-                        c.status !== 'closed' ? { label: 'Pause', icon: Pause, onClick: () => updateStatus(c.id, 'paused') } : null,
+                          c.status !== 'closed' ? { label: 'Pause', icon: Pause, onClick: () => updateStatus(c.id, 'paused') } : null,
                         { label: 'Duplicate', icon: Copy, onClick: () => { client.post(`/api/campaigns/${c.id}/duplicate`).then(() => { toast.success('Campaign duplicated'); fetchCampaigns() }).catch(() => toast.error('Failed')) } },
                         { divider: true },
                         { label: 'Close', icon: XIcon, onClick: () => updateStatus(c.id, 'closed') },

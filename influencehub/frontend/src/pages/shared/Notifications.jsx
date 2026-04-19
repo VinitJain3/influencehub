@@ -26,7 +26,7 @@ export default function Notifications() {
   const [activeTab, setActiveTab] = useState('all')
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
-  const { markAllRead } = useNotificationStore()
+  const { markAllRead } = useNotificationStore((s) => s)
   const navigate = useNavigate()
 
   useEffect(() => {

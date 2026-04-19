@@ -28,18 +28,10 @@ export default function Login() {
       if (rememberMe) localStorage.setItem('savedEmail', data.email)
       navigate(res.data.role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard')
     } catch (err) {
-      // DEMO BYPASS: Allows UI testing without a backend connected
-      const role = data.email.includes('influencer') || data.email.includes('creator') ? 'influencer' : 'brand'
-      login({ name: 'Demo User', email: data.email }, 'demo-token', role)
-      toast.success(`Demo Login (${role})`)
-      navigate(role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard')
-      return;
-
-      if (err.response?.status === 401) {
-        setError('email', { message: 'Invalid email or password' })
-      } else {
-        toast.error('Login failed', 'Please try again later.')
-      }
+      const errorMsg = typeof err.response?.data === 'string' 
+        ? err.response.data 
+        : 'Invalid email or password. Please try again.'
+      setError('email', { message: errorMsg })
     } finally {
       setLoading(false)
     }

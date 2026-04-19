@@ -83,13 +83,7 @@ export default function Sidebar({ role }) {
 
       {/* Bottom section */}
       <div className="p-[12px] border-t border-[#E0E0DB] flex-shrink-0">
-        {role === 'brand' ? (
-          <div className="bg-[#E8F5E6] border border-[#C5E0C3] rounded-[8px] p-[14px]">
-            <p className="text-[13px] font-semibold text-[#1C1C1C] mb-[2px]">Upgrade to Pro</p>
-            <p className="text-[12px] text-[#666666] mb-[10px]">Unlock unlimited requests &amp; analytics</p>
-            <Button size="sm" fullWidth onClick={() => navigate('/settings#billing')}>Upgrade</Button>
-          </div>
-        ) : (
+        {role === 'influencer' && (
           <div className="bg-white border border-[#108A00] rounded-[8px] p-[14px]">
             <p className="text-[13px] font-semibold text-[#108A00] mb-[2px]">Get Verified ✓</p>
             <p className="text-[12px] text-[#666666] mb-[10px]">Boosts your profile 3× in search</p>

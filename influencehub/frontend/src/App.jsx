@@ -37,17 +37,32 @@ import Notifications from './pages/shared/Notifications'
 import Settings from './pages/shared/Settings'
 
 function ProtectedRoute({ children, allowedRole }) {
-  const { isAuthenticated, role } = useAuthStore()
+  const { isAuthenticated, role } = useAuthStore((s) => s)
+  
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  
+  // If allowedRole is specified but user has a different role
   if (allowedRole && role !== allowedRole) {
+    // If role is completely invalid/missing, flush it
+    if (role !== 'brand' && role !== 'influencer') {
+      useAuthStore.getState().logout()
+      return <Navigate to="/login" replace />
+    }
     return <Navigate to={role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard'} replace />
   }
+  
   return children
 }
 
 function PublicOnlyRoute({ children }) {
-  const { isAuthenticated, role } = useAuthStore()
-  if (isAuthenticated) return <Navigate to={role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard'} replace />
+  const { isAuthenticated, role } = useAuthStore((s) => s)
+  if (isAuthenticated) {
+    if (role !== 'brand' && role !== 'influencer') {
+      useAuthStore.getState().logout()
+      return <Navigate to="/login" replace />
+    }
+    return <Navigate to={role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard'} replace />
+  }
   return children
 }
 

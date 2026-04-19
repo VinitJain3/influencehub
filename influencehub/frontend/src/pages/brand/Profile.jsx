@@ -110,7 +110,6 @@ export default function BrandProfile() {
             <div className="space-y-[10px]">
               {[
                 { label: 'Email', value: user?.email },
-                { label: 'Plan', value: profile?.plan || 'Free' },
                 { label: 'Member Since', value: profile?.joinDate },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between">

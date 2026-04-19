@@ -16,14 +16,13 @@ const sections = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Lock },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'privacy', label: 'Privacy', icon: Eye },
   { id: 'verification', label: 'Verification', icon: Shield },
   { id: 'danger', label: 'Account', icon: Trash2 },
 ]
 
 export default function Settings() {
-  const { user, role, logout, updateUser } = useAuthStore()
+  const { user, role, logout, updateUser } = useAuthStore((s) => s)
   const [activeSection, setActiveSection] = useState('profile')
   const [saving, setSaving] = useState(false)
   const [deleteModal, setDeleteModal] = useState(false)
@@ -134,24 +133,7 @@ export default function Settings() {
             </Card>
           )}
 
-          {activeSection === 'billing' && (
-            <Card>
-              <h2 className="text-[18px] font-semibold text-[#1C1C1C] mb-[8px]">Billing & Subscription</h2>
-              <p className="text-[14px] text-[#888888] mb-[20px]">Manage your subscription and payment methods</p>
-              <div className="bg-[#F5F5F0] border border-[#E0E0DB] rounded-[10px] p-[20px] mb-[20px]">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-[14px] font-semibold text-[#1C1C1C]">Current Plan: <span className="text-[#108A00]">Free</span></p>
-                    <p className="text-[12px] text-[#888888] mt-[2px]">Upgrade to unlock premium features</p>
-                  </div>
-                  <Button size="sm">Upgrade to Pro</Button>
-                </div>
-              </div>
-              <h3 className="text-[14px] font-semibold text-[#1C1C1C] mb-[10px]">Payment Methods</h3>
-              <p className="text-[13px] text-[#888888]">No payment methods on file.</p>
-              <Button variant="ghost-green" size="sm" className="mt-[10px]">Add Payment Method</Button>
-            </Card>
-          )}
+
 
           {activeSection === 'privacy' && (
             <Card>

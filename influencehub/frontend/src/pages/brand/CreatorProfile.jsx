@@ -34,7 +34,7 @@ export default function CreatorProfile() {
       .then(res => setCreator(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))
-    client.get('/api/brand/campaigns', { params: { status: 'active' } })
+    client.get('/api/campaigns/brand', { params: { status: 'active' } })
       .then(res => setCampaigns(res.data.campaigns || []))
       .catch(() => {})
     client.get(`/api/creators/${id}/similar`)

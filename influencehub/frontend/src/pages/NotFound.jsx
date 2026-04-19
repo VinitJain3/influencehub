@@ -4,7 +4,7 @@ import Button from '../components/ui/Button'
 import Logo from '../components/ui/Logo'
 
 export default function NotFound() {
-  const { isAuthenticated, role } = useAuthStore()
+  const { isAuthenticated, role } = useAuthStore((s) => s)
   const dashboardPath = isAuthenticated ? (role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard') : '/'
 
   return (
