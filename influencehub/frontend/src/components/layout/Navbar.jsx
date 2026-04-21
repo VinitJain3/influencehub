@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Bell, HelpCircle, LogOut, User, Settings, CreditCard } from 'lucide-react'
 import Logo from '../ui/Logo'
@@ -6,6 +7,7 @@ import Avatar from '../ui/Avatar'
 import DropdownMenu from '../ui/DropdownMenu'
 import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
+import client from '../../api/client'
 
 function MarketingNavbar() {
   return (
@@ -37,13 +39,26 @@ function AuthNavbar() {
 
 function AppNavbar() {
   const { user, role, logout } = useAuthStore()
-  const unreadCount = useNotificationStore((s) => s.unreadCount)
+  const { unreadCount, setCount } = useNotificationStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchCount = () => {
+      client.get('/api/notifications')
+        .then(res => {
+          const unread = (res.data || []).filter(n => !n.read).length
+          setCount(unread)
+        })
+        .catch(() => {})
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 30000) // Poll every 30s
+    return () => clearInterval(interval)
+  }, [setCount])
 
   const menuItems = [
     { label: 'View Profile', icon: User, onClick: () => navigate(role === 'brand' ? '/brand/profile' : '/influencer/profile') },
     { label: 'Account Settings', icon: Settings, onClick: () => navigate('/settings') },
-    { label: 'Billing', icon: CreditCard, onClick: () => navigate('/settings#billing') },
     { divider: true },
     { label: 'Sign Out', icon: LogOut, danger: true, onClick: () => { logout(); navigate('/login') } },
   ]
@@ -68,9 +83,6 @@ function AppNavbar() {
           {unreadCount > 0 && (
             <span className="absolute top-[4px] right-[4px] w-[8px] h-[8px] rounded-full bg-[#C0392B] border-2 border-white" />
           )}
-        </button>
-        <button className="w-[32px] h-[32px] rounded-[4px] hover:bg-[#F5F5F0] flex items-center justify-center cursor-pointer transition-colors">
-          <HelpCircle size={16} className="text-[#888888]" />
         </button>
         <div className="w-[1px] h-[24px] bg-[#E0E0DB] mx-[8px]" />
         <DropdownMenu

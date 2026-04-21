@@ -14,7 +14,6 @@ const brandNav = [
   { icon: Megaphone, label: 'My Campaigns', to: '/brand/campaigns' },
   { icon: Inbox, label: 'Requests', to: '/brand/requests', badgeKey: 'pending' },
   { icon: MessageSquare, label: 'Messages', to: '/messages', badgeKey: 'unread' },
-  { icon: BarChart2, label: 'Analytics', to: '/brand/analytics' },
   'separator',
   { icon: Settings, label: 'Settings', to: '/settings' },
 ]
@@ -25,7 +24,6 @@ const influencerNav = [
   { icon: Send, label: 'My Requests', to: '/influencer/requests', badgeKey: 'pending' },
   { icon: MessageSquare, label: 'Messages', to: '/messages', badgeKey: 'unread' },
   { icon: User, label: 'My Profile', to: '/influencer/profile' },
-  { icon: BarChart2, label: 'Analytics', to: '/influencer/analytics' },
   'separator',
   { icon: Settings, label: 'Settings', to: '/settings' },
 ]
@@ -82,23 +80,7 @@ export default function Sidebar({ role }) {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-[12px] border-t border-[#E0E0DB] flex-shrink-0">
-        {role === 'brand' ? (
-          <div className="bg-[#E8F5E6] border border-[#C5E0C3] rounded-[8px] p-[14px]">
-            <p className="text-[13px] font-semibold text-[#1C1C1C] mb-[2px]">Upgrade to Pro</p>
-            <p className="text-[12px] text-[#666666] mb-[10px]">Unlock unlimited requests &amp; analytics</p>
-            <Button size="sm" fullWidth onClick={() => navigate('/settings#billing')}>Upgrade</Button>
-          </div>
-        ) : (
-          <div className="bg-white border border-[#108A00] rounded-[8px] p-[14px]">
-            <p className="text-[13px] font-semibold text-[#108A00] mb-[2px]">Get Verified ✓</p>
-            <p className="text-[12px] text-[#666666] mb-[10px]">Boosts your profile 3× in search</p>
-            <Button variant="ghost-green" size="sm" fullWidth onClick={() => navigate('/settings#verification')}>
-              Get Verified
-            </Button>
-          </div>
-        )}
-      </div>
+      <div className="p-[12px] border-t border-[#E0E0DB] flex-shrink-0" />
     </aside>
   )
 }

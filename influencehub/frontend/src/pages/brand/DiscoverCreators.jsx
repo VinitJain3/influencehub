@@ -22,7 +22,7 @@ const engagementOptions = [{ value: '', label: 'Any' },{ value: '1-3', label: '1
 const sortOptions = [{ value: 'relevance', label: 'Relevance' },{ value: 'followers_desc', label: 'Followers ↓' },{ value: 'followers_asc', label: 'Followers ↑' },{ value: 'engagement', label: 'Engagement' },{ value: 'newest', label: 'Newest' }]
 
 export default function DiscoverCreators() {
-  const [filters, setFilters] = useState({ niches: [], platforms: [], budget: '', engagement: '', verifiedOnly: false })
+  const [filters, setFilters] = useState({ niches: [], platforms: [], budget: '', engagement: '' })
   const [sort, setSort] = useState('relevance')
   const [view, setView] = useState('grid')
   const [page, setPage] = useState(1)
@@ -54,7 +54,7 @@ export default function DiscoverCreators() {
           <Card>
             <div className="flex justify-between items-center mb-[16px]">
               <h3 className="text-[15px] font-semibold text-[#1C1C1C]">Filters</h3>
-              <button onClick={() => setFilters({ niches: [], platforms: [], budget: '', engagement: '', verifiedOnly: false })} className="text-[13px] text-[#C0392B] hover:underline cursor-pointer">Clear All</button>
+              <button onClick={() => setFilters({ niches: [], platforms: [], budget: '', engagement: '' })} className="text-[13px] text-[#C0392B] hover:underline cursor-pointer">Clear All</button>
             </div>
 
             {/* Niche */}
@@ -103,10 +103,6 @@ export default function DiscoverCreators() {
                 onChange={e => setFilters({ ...filters, engagement: e.target.value })} />
             </div>
 
-            {/* Verified */}
-            <Toggle label="Verified Only" checked={filters.verifiedOnly}
-              onChange={(v) => setFilters({ ...filters, verifiedOnly: v })} />
-
             <Button fullWidth className="mt-[18px] !h-[38px]" onClick={() => { setPage(1); fetchCreators() }}>Apply Filters</Button>
           </Card>
         </div>
@@ -134,7 +130,7 @@ export default function DiscoverCreators() {
             </div>
           ) : !results.length ? (
             <Card><EmptyState icon={SearchX} title="No creators match your filters" description="Try adjusting your filters or search criteria."
-              action={{ label: 'Clear Filters', variant: 'ghost-green', onClick: () => setFilters({ niches: [], platforms: [], budget: '', engagement: '', verifiedOnly: false }) }} /></Card>
+              action={{ label: 'Clear Filters', variant: 'ghost-green', onClick: () => setFilters({ niches: [], platforms: [], budget: '', engagement: '' }) }} /></Card>
           ) : view === 'grid' ? (
             <div className="grid grid-cols-3 gap-[14px]">
               {results.map(c => (
@@ -148,7 +144,7 @@ export default function DiscoverCreators() {
                     {c.niche && <TagPill label={c.niche} className="mt-[4px]" />}
                     <div className="flex gap-[6px] mt-[10px]">
                       <Button variant="ghost-dark" size="sm" fullWidth onClick={() => navigate(`/brand/creator/${c.id}`)}>View</Button>
-                      <Button size="sm" fullWidth>Request</Button>
+                      <Button size="sm" fullWidth onClick={() => navigate(`/brand/creator/${c.id}`)}>Request</Button>
                     </div>
                   </div>
                 </Card>
@@ -165,7 +161,7 @@ export default function DiscoverCreators() {
                   </div>
                   <div className="flex gap-[6px] ml-auto">
                     <Button variant="ghost-dark" size="sm" onClick={() => navigate(`/brand/creator/${c.id}`)}>View</Button>
-                    <Button size="sm">Request</Button>
+                    <Button size="sm" onClick={() => navigate(`/brand/creator/${c.id}`)}>Request</Button>
                   </div>
                 </Card>
               ))}
