@@ -20,7 +20,6 @@ import CreatorProfile from './pages/brand/CreatorProfile'
 import MyCampaigns from './pages/brand/MyCampaigns'
 import NewCampaign from './pages/brand/NewCampaign'
 import BrandRequests from './pages/brand/Requests'
-import BrandAnalytics from './pages/brand/Analytics'
 import BrandProfile from './pages/brand/Profile'
 
 // Influencer pages
@@ -28,7 +27,6 @@ import InfluencerDashboard from './pages/influencer/Dashboard'
 import BrowseCampaigns from './pages/influencer/BrowseCampaigns'
 import CampaignDetail from './pages/influencer/CampaignDetail'
 import MyRequests from './pages/influencer/MyRequests'
-import InfluencerAnalytics from './pages/influencer/Analytics'
 import InfluencerProfile from './pages/influencer/Profile'
 
 // Shared pages
@@ -75,7 +73,6 @@ export default function App() {
         <Route path="/brand/campaigns/new" element={<ProtectedRoute allowedRole="brand"><NewCampaign /></ProtectedRoute>} />
         <Route path="/brand/campaigns/:id/edit" element={<ProtectedRoute allowedRole="brand"><NewCampaign /></ProtectedRoute>} />
         <Route path="/brand/requests" element={<ProtectedRoute allowedRole="brand"><BrandRequests /></ProtectedRoute>} />
-        <Route path="/brand/analytics" element={<ProtectedRoute allowedRole="brand"><BrandAnalytics /></ProtectedRoute>} />
         <Route path="/brand/profile" element={<ProtectedRoute allowedRole="brand"><BrandProfile /></ProtectedRoute>} />
 
         {/* Influencer Portal */}
@@ -83,7 +80,6 @@ export default function App() {
         <Route path="/influencer/campaigns" element={<ProtectedRoute allowedRole="influencer"><BrowseCampaigns /></ProtectedRoute>} />
         <Route path="/influencer/campaigns/:id" element={<ProtectedRoute allowedRole="influencer"><CampaignDetail /></ProtectedRoute>} />
         <Route path="/influencer/requests" element={<ProtectedRoute allowedRole="influencer"><MyRequests /></ProtectedRoute>} />
-        <Route path="/influencer/analytics" element={<ProtectedRoute allowedRole="influencer"><InfluencerAnalytics /></ProtectedRoute>} />
         <Route path="/influencer/profile" element={<ProtectedRoute allowedRole="influencer"><InfluencerProfile /></ProtectedRoute>} />
 
         {/* Shared */}

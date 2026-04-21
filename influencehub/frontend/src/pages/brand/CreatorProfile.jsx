@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { MapPin, ExternalLink, CheckCircle } from 'lucide-react'
+import { MapPin, ExternalLink, CheckCircle, MessageSquare } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -10,6 +10,7 @@ import StatCard from '../../components/ui/StatCard'
 import Select from '../../components/ui/Select'
 import Textarea from '../../components/ui/Textarea'
 import EmptyState from '../../components/ui/EmptyState'
+import Modal from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { useToast } from '../../store/toastStore'
 import client from '../../api/client'
@@ -24,6 +25,7 @@ export default function CreatorProfile() {
   const [message, setMessage] = useState('')
   const [requestSent, setRequestSent] = useState(false)
   const [sending, setSending] = useState(false)
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [similar, setSimilar] = useState([])
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -49,8 +51,17 @@ export default function CreatorProfile() {
       await client.post('/api/requests', { creatorId: id, campaignId: selectedCampaign, message })
       setRequestSent(true)
       toast.success('Collaboration request sent!')
+      setTimeout(() => setIsRequestModalOpen(false), 2000)
     } catch { toast.error('Failed to send request') }
     finally { setSending(false) }
+  }
+
+  const startChat = async () => {
+    if (!creator?.userId) return
+    try {
+      const res = await client.post('/api/conversations', { otherUserId: creator.userId })
+      navigate(`/messages?conversationId=${res.data.id}`)
+    } catch { toast.error('Failed to start conversation') }
   }
 
   if (!loading && !creator) {
@@ -72,8 +83,8 @@ export default function CreatorProfile() {
               className="absolute top-[122px] left-[24px] border-[3px] border-white" />
             {!loading && (
               <div className="absolute top-[158px] right-[20px] flex gap-[8px]">
-                <Button size="sm">Request Collaboration</Button>
-                <Button variant="ghost-dark" size="sm">Save</Button>
+                <Button variant="ghost-dark" size="sm" onClick={startChat} icon={MessageSquare}>Message</Button>
+                <Button size="sm" onClick={() => setIsRequestModalOpen(true)}>Request Collaboration</Button>
               </div>
             )}
             <div className="pt-[44px] px-[24px] pb-[22px]">
@@ -134,33 +145,6 @@ export default function CreatorProfile() {
 
         {/* Right Rail */}
         <div className="w-[304px] flex-shrink-0 sticky top-[84px] flex flex-col gap-[16px]">
-          <Card>
-            <div className="flex items-center gap-[8px] mb-[16px]">
-              <Avatar name={creator?.name} size={36} />
-              <div>
-                <p className="text-[13px] font-semibold text-[#1C1C1C]">{creator?.name || '--'}</p>
-                {creator?.niche && <TagPill label={creator.niche} />}
-              </div>
-            </div>
-            {requestSent ? (
-              <div className="text-center py-[12px]">
-                <CheckCircle size={24} className="text-[#108A00] mx-auto mb-[6px]" />
-                <p className="text-[14px] font-semibold text-[#1C1C1C]">Request Sent ✓</p>
-              </div>
-            ) : (
-              <>
-                <Select label="Select Campaign" name="campaign" options={campaigns.map(c => ({ value: c.id, label: c.title }))}
-                  placeholder={campaigns.length ? 'Select a campaign' : 'No active campaigns'} value={selectedCampaign}
-                  onChange={e => setSelectedCampaign(e.target.value)} />
-                <Textarea label="Message (Optional)" name="message" rows={3} className="mt-[12px]" value={message} onChange={e => setMessage(e.target.value)} />
-                <Button fullWidth className="mt-[16px] !h-[40px]" disabled={!selectedCampaign} loading={sending} onClick={sendRequest}>
-                  Send Collaboration Request →
-                </Button>
-                <p className="text-[12px] text-[#888888] italic mt-[8px]">Creator receives an email with your brand profile.</p>
-              </>
-            )}
-          </Card>
-
           {similar.length > 0 && (
             <Card>
               <h4 className="text-[14px] font-semibold text-[#1C1C1C] mb-[12px]">Similar Creators</h4>
@@ -180,6 +164,68 @@ export default function CreatorProfile() {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        title="Request Collaboration"
+        size="sm"
+        footer={
+          !requestSent && (
+            <div className="flex w-full gap-[12px]">
+              <Button variant="ghost-dark" className="flex-1" onClick={() => setIsRequestModalOpen(false)}>Cancel</Button>
+              <Button className="flex-1" disabled={!selectedCampaign} loading={sending} onClick={sendRequest}>
+                Send Request
+              </Button>
+            </div>
+          )
+        }
+      >
+        <div className="flex items-center gap-[12px] mb-[20px] p-[16px] bg-[#F5F5F0] rounded-[8px]">
+          <Avatar name={creator?.name} src={creator?.avatar} size={48} />
+          <div>
+            <p className="text-[15px] font-bold text-[#1C1C1C]">{creator?.name || '--'}</p>
+            <p className="text-[13px] text-[#888888]">@{creator?.handle}</p>
+          </div>
+        </div>
+
+        {requestSent ? (
+          <div className="text-center py-[24px]">
+            <div className="w-[48px] h-[48px] bg-[#108A0015] rounded-full flex items-center justify-center mx-auto mb-[12px]">
+              <CheckCircle size={24} className="text-[#108A00]" />
+            </div>
+            <h4 className="text-[18px] font-bold text-[#1C1C1C] mb-[4px]">Request Sent!</h4>
+            <p className="text-[14px] text-[#888888]">The creator has been notified of your interest.</p>
+          </div>
+        ) : (
+          <div className="space-y-[16px]">
+            <Select 
+              label="Select Campaign" 
+              name="campaign" 
+              options={campaigns.map(c => ({ value: c.id, label: c.title }))}
+              placeholder={campaigns.length ? 'Select a campaign' : 'No active campaigns'} 
+              value={selectedCampaign}
+              onChange={e => setSelectedCampaign(e.target.value)} 
+            />
+            {!campaigns.length && (
+              <Link to="/brand/campaigns/new" className="text-[12px] text-[#108A00] hover:underline block">
+                + Create your first campaign
+              </Link>
+            )}
+            <Textarea 
+              label="Message (Optional)" 
+              name="message" 
+              rows={4} 
+              placeholder="Briefly describe why you'd like to work with this creator..."
+              value={message} 
+              onChange={e => setMessage(e.target.value)} 
+            />
+            <p className="text-[12px] text-[#888888] italic">
+              The creator will receive an email and a platform notification.
+            </p>
+          </div>
+        )}
+      </Modal>
     </AppLayout>
   )
 }

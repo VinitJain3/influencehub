@@ -185,7 +185,6 @@ export default function BrandDashboard() {
               {[
                 { label: 'Post Campaign', icon: Megaphone, to: '/brand/campaigns/new' },
                 { label: 'Discover Creators', icon: Search, to: '/brand/discover' },
-                { label: 'Analytics', icon: BarChart2, to: '/brand/analytics' },
                 { label: 'Settings', icon: LayoutDashboard, to: '/settings' },
               ].map(action => (
                 <Link key={action.to} to={action.to} className="flex items-center gap-[8px] p-[8px] rounded-[6px] hover:bg-[#F5F5F0] transition-colors text-[13px] text-[#444444]">
@@ -195,18 +194,6 @@ export default function BrandDashboard() {
                 </Link>
               ))}
             </div>
-          </Card>
-          <Card>
-            <h4 className="text-[14px] font-semibold text-[#1C1C1C] mb-[12px]">Trending Niches</h4>
-            <HorizontalBarRanking
-              data={data?.trendingNiches || []}
-              showRank
-              showValue
-              barHeight={6}
-            />
-            {!data?.trendingNiches?.length && !loading && (
-              <p className="text-[12px] text-[#888888] text-center py-[16px]">--</p>
-            )}
           </Card>
         </div>
       </div>

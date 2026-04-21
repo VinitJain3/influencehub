@@ -137,7 +137,6 @@ export default function InfluencerDashboard() {
               {[
                 { label: 'Browse Campaigns', icon: Megaphone, to: '/influencer/campaigns' },
                 { label: 'My Requests', icon: Inbox, to: '/influencer/requests' },
-                { label: 'Analytics', icon: BarChart2, to: '/influencer/analytics' },
                 { label: 'Edit Profile', icon: User, to: '/influencer/profile' },
               ].map(action => (
                 <Link key={action.to} to={action.to} className="flex items-center gap-[8px] p-[8px] rounded-[6px] hover:bg-[#F5F5F0] transition-colors text-[13px] text-[#444444]">
@@ -147,10 +146,6 @@ export default function InfluencerDashboard() {
                 </Link>
               ))}
             </div>
-          </Card>
-          <Card className="bg-[#E8F5E6] border-[#C5E0C3]">
-            <p className="text-[13px] font-semibold text-[#1C1C1C] mb-[2px]">💡 Profile Tip</p>
-            <p className="text-[12px] text-[#444444] leading-[1.6]">Add portfolio samples and update your engagement rate to appear higher in search results.</p>
           </Card>
         </div>
       </div>

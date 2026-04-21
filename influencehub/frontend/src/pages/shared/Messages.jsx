@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Send, Paperclip, Search, MessageSquare } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Card from '../../components/ui/Card'
@@ -13,6 +14,7 @@ export default function Messages() {
   const role = useAuthStore((s) => s.role)
   const user = useAuthStore((s) => s.user)
   const { conversations, activeId, messages, setConversations, setActive, appendMessage, setMessages, markConversationRead } = useConversationStore()
+  const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [msgLoading, setMsgLoading] = useState(false)
   const [text, setText] = useState('')
@@ -22,7 +24,14 @@ export default function Messages() {
 
   useEffect(() => {
     client.get('/api/conversations')
-      .then(res => setConversations(res.data || []))
+      .then(res => {
+        const data = res.data || []
+        setConversations(data)
+        const paramId = searchParams.get('conversationId')
+        if (paramId) {
+          setActive(parseInt(paramId))
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
