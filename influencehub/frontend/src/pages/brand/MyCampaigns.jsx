@@ -75,7 +75,7 @@ export default function MyCampaigns() {
       </div>
 
       {/* Table */}
-      <Card className="!p-0 overflow-hidden">
+      <Card className="!p-0 [&_th:first-child]:rounded-tl-[12px] [&_th:last-child]:rounded-tr-[12px]">
         {loading ? (
           <div className="p-[20px] space-y-[8px]">{[1,2,3,4,5,6].map(i => <Skeleton key={i} height={60} />)}</div>
         ) : !campaigns.length ? (

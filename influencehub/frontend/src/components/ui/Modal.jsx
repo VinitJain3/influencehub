@@ -29,7 +29,8 @@ export default function Modal({
       document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEsc)
     }
-  }, [isOpen, onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   return (
     <AnimatePresence>

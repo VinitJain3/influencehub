@@ -19,6 +19,15 @@ const locationOptions = ['Any City','Mumbai','Delhi','Bangalore','Chennai','Hyde
 const usageOptions = ['Organic Only','Organic + Paid','Full Rights'].map(v => ({ value: v, label: v }))
 const autoCloseOptions = [{ value: '', label: 'Never' },{ value: '7', label: '7 days' },{ value: '14', label: '14 days' },{ value: '30', label: '30 days' }]
 
+const Section = ({ num, title, children }) => (
+  <Card className="flex flex-col">
+    <p className="text-[11px] font-bold text-[#108A00] uppercase tracking-[1.5px] mb-[4px]">Section {num}</p>
+    <h3 className="text-[16px] font-semibold text-[#1C1C1C]">{title}</h3>
+    <div className="h-[1px] bg-[#F0F0EB] my-[10px] mb-[18px]" />
+    {children}
+  </Card>
+)
+
 export default function NewCampaign() {
   const { id } = useParams()
   const isEdit = !!id
@@ -51,15 +60,6 @@ export default function NewCampaign() {
     } catch { toast.error('Failed to save campaign') }
     finally { setLoading(false) }
   }
-
-  const Section = ({ num, title, children }) => (
-    <Card className="flex flex-col">
-      <p className="text-[11px] font-bold text-[#108A00] uppercase tracking-[1.5px] mb-[4px]">Section {num}</p>
-      <h3 className="text-[16px] font-semibold text-[#1C1C1C]">{title}</h3>
-      <div className="h-[1px] bg-[#F0F0EB] my-[10px] mb-[18px]" />
-      {children}
-    </Card>
-  )
 
   return (
     <AppLayout role="brand">
