@@ -43,6 +43,9 @@ public class CollaborationRequestController {
     private UserRepository userRepository;
 
     @Autowired
+    private com.influencehub.backend.influencer.repository.InfluencerProfileRepository influencerProfileRepository;
+
+    @Autowired
     private com.influencehub.backend.service.NotificationService notificationService;
 
     private User getCurrentUser(String authHeader) {
@@ -144,6 +147,9 @@ public class CollaborationRequestController {
             map.put("campaignTitle", r.getCampaign() != null ? r.getCampaign().getTitle() : null);
             map.put("creatorName", r.getCreator().getName());
             map.put("creatorId", r.getCreator().getId());
+            // Look up the InfluencerProfile ID so frontend can link to /brand/creator/{profileId}
+            influencerProfileRepository.findByUserId(r.getCreator().getId())
+                .ifPresent(p -> map.put("creatorProfileId", p.getId()));
             map.put("status", r.getStatus());
             map.put("timestamp", r.getTimestamp());
             // Use description if available, fall back to message
@@ -183,8 +189,10 @@ public class CollaborationRequestController {
 
     /**
      * PUT /api/requests/{id}/status
-     * Influencer accepts or rejects a collaboration request.
-     * Only the creator (recipient) of the request can update the status.
+     * Updates the status of a collaboration request.
+     * Both the BRAND (who sent the request) and the CREATOR (recipient) can update status.
+     * - Brand uses this to accept/reject incoming applications on their Requests page.
+     * - Creator uses this to accept/reject brand outreach on their MyRequests page.
      */
     @PutMapping("/requests/{id}/status")
     public ResponseEntity<?> updateRequestStatus(@PathVariable Long id, @RequestBody Map<String, String> body,
@@ -202,22 +210,37 @@ public class CollaborationRequestController {
             return ResponseEntity.notFound().build();
 
         CollaborationRequest req = reqOpt.get();
-        // Only the recipient (influencer/creator) can update status
-        if (!req.getCreator().getId().equals(user.getId())) {
-            return ResponseEntity.status(403).body("Forbidden");
+
+        boolean isBrand = req.getBrand().getId().equals(user.getId());
+        boolean isCreator = req.getCreator().getId().equals(user.getId());
+
+        // Only a participant (brand or creator) of this request can update it
+        if (!isBrand && !isCreator) {
+            return ResponseEntity.status(403).body("Forbidden: you are not a participant in this request");
         }
 
         req.setStatus(status.toUpperCase());
         requestRepository.save(req);
 
-        // Notify brand — Observer pattern via NotificationService
+        // Observer-pattern notification: notify the OTHER party
         String statusLabel = status.toLowerCase();
-        notificationService.notify(
+        if (isBrand) {
+            // Brand acted — notify the creator
+            notificationService.notify(
+                req.getCreator(),
+                "request",
+                req.getBrand().getName() + " has " + statusLabel + " your collaboration request",
+                "/influencer/requests"
+            );
+        } else {
+            // Creator acted — notify the brand
+            notificationService.notify(
                 req.getBrand(),
                 "request",
-                user.getName() + " has " + statusLabel + " your collaboration request",
+                req.getCreator().getName() + " has " + statusLabel + " your collaboration request",
                 "/brand/requests"
-        );
+            );
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("id", req.getId());
