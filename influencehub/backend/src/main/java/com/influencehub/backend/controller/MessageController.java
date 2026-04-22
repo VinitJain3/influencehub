@@ -6,6 +6,7 @@ import com.influencehub.backend.dto.MessageResponse;
 import com.influencehub.backend.model.Conversation;
 import com.influencehub.backend.model.Message;
 import com.influencehub.backend.model.User;
+import com.influencehub.backend.repository.CollaborationRequestRepository;
 import com.influencehub.backend.repository.ConversationRepository;
 import com.influencehub.backend.repository.MessageRepository;
 import com.influencehub.backend.repository.UserRepository;
@@ -40,6 +41,9 @@ public class MessageController {
 
     @Autowired
     private InfluencerProfileRepository influencerProfileRepository;
+
+    @Autowired
+    private CollaborationRequestRepository collaborationRequestRepository;
 
     @Autowired
     private NotificationService notificationService;
@@ -79,6 +83,13 @@ public class MessageController {
         return ResponseEntity.ok(responses);
     }
 
+    /**
+     * POST /api/conversations
+     * Creates or returns an existing conversation between two users.
+     * GUARD: Messaging is only allowed if there is at least one ACCEPTED collaboration
+     * request between the brand and influencer. This enforces the business rule:
+     * "Brand and creator can only message each other after a request is accepted."
+     */
     @PostMapping
     public ResponseEntity<?> createConversation(@RequestBody Map<String, Long> body, @RequestHeader(value = "Authorization", required = false) String authHeader) {
         User user = getCurrentUser(authHeader);
@@ -90,6 +101,15 @@ public class MessageController {
         Optional<User> otherOpt = userRepository.findById(otherUserId);
         if (otherOpt.isEmpty()) return ResponseEntity.notFound().build();
         User other = otherOpt.get();
+
+        // Business Rule: Only allow messaging if there is an ACCEPTED collaboration request
+        // between the two users (in either direction: brand → creator or creator → brand).
+        boolean hasAcceptedRequest = collaborationRequestRepository.existsAcceptedBetween(user, other);
+        if (!hasAcceptedRequest) {
+            return ResponseEntity.status(403).body(
+                "Messaging is only allowed after a collaboration request has been accepted."
+            );
+        }
 
         Optional<Conversation> existing = conversationRepository.findBetweenUsers(user, other);
         if (existing.isPresent()) {

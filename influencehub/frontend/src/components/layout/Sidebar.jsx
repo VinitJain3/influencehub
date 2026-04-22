@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Megaphone, Inbox, MessageSquare,
-  BarChart2, Settings, Send, User
+  Settings, Send, User
 } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Button from '../ui/Button'
@@ -9,7 +9,6 @@ import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 
 const brandNav = [
-  { icon: LayoutDashboard, label: 'Dashboard', to: '/brand/dashboard' },
   { icon: Users, label: 'Discover Creators', to: '/brand/discover' },
   { icon: Megaphone, label: 'My Campaigns', to: '/brand/campaigns' },
   { icon: Inbox, label: 'Requests', to: '/brand/requests', badgeKey: 'pending' },

@@ -6,7 +6,6 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import StatusChip from '../../components/ui/StatusChip'
 import Avatar from '../../components/ui/Avatar'
-import TagPill from '../../components/ui/TagPill'
 import Pagination from '../../components/ui/Pagination'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
@@ -34,8 +33,14 @@ export default function Requests() {
 
   const fetchRequests = () => {
     setLoading(true)
-    client.get('/api/brand/requests', { params: { status: activeTab === 'all' ? undefined : activeTab, page, campaignId: campaignFilter } })
-      .then(res => { setRequests(res.data.requests || []); setTotal(res.data.total || 0) })
+    client.get('/api/brand/requests')
+      .then(res => {
+        // Backend returns an array directly
+        const data = Array.isArray(res.data) ? res.data : []
+        const filtered = activeTab === 'all' ? data : data.filter(r => r.status?.toLowerCase() === activeTab)
+        setRequests(filtered)
+        setTotal(filtered.length)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
@@ -45,8 +50,8 @@ export default function Requests() {
   const handleAction = async (id, status, reason) => {
     setActing(true)
     try {
-      await client.put(`/api/requests/${id}`, { status, reason })
-      setRequests(requests.map(r => r.id === id ? { ...r, status } : r))
+      await client.put(`/api/requests/${id}/status`, { status, reason })
+      setRequests(requests.map(r => r.id === id ? { ...r, status: status.toUpperCase() } : r))
       toast.success(`Request ${status}`)
       setReviewModal(null)
     } catch { toast.error('Action failed') }
@@ -82,7 +87,7 @@ export default function Requests() {
           <table className="w-full" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="bg-[#FAFAF8] border-b border-[#F0F0EB]">
-                {['Creator','Campaign','Message','Proposed Rate','Date','Status','Actions'].map(h => (
+                {['Creator','Message','Date','Status','Actions'].map(h => (
                   <th key={h} className="text-left px-[16px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase">{h}</th>
                 ))}
               </tr>
@@ -93,25 +98,22 @@ export default function Requests() {
                   <td className="px-[16px]">
                     <div className="flex items-center gap-[8px]">
                       <Avatar name={req.creatorName} size={32} />
-                      <div className="min-w-0">
-                        <button onClick={() => navigate(`/brand/creator/${req.creatorId}`)} className="text-[13px] font-semibold text-[#1C1C1C] hover:text-[#108A00] truncate block cursor-pointer">{req.creatorName}</button>
-                        {req.creatorNiche && <TagPill label={req.creatorNiche} />}
-                      </div>
+                      <span className="text-[13px] font-semibold text-[#1C1C1C] truncate">{req.creatorName}</span>
                     </div>
                   </td>
-                  <td className="px-[16px] text-[13px] text-[#444444] truncate">{req.campaignTitle}</td>
-                  <td className="px-[16px] text-[13px] text-[#444444] truncate max-w-[140px]">{req.message || '--'}</td>
-                  <td className="px-[16px] text-[13px] font-semibold text-[#1C1C1C]">{req.proposedRate ? `₹${req.proposedRate}` : '--'}</td>
-                  <td className="px-[16px] text-[12px] text-[#888888]">{req.date}</td>
+                  <td className="px-[16px] text-[13px] text-[#444444] truncate max-w-[160px]">{req.message || '--'}</td>
+                  <td className="px-[16px] text-[12px] text-[#888888]">{req.timestamp ? new Date(req.timestamp).toLocaleDateString() : '--'}</td>
                   <td className="px-[16px]"><StatusChip status={req.status} /></td>
                   <td className="px-[16px]">
-                    {req.status === 'pending' && (
+                    {(req.status === 'PENDING' || req.status === 'pending') && (
                       <div className="flex gap-[6px]">
-                        <Button size="sm" className="!h-[28px] !text-[11px] !px-[10px]" onClick={() => handleAction(req.id, 'accepted')}>Accept</Button>
+                        <Button size="sm" className="!h-[28px] !text-[11px] !px-[10px]" onClick={() => handleAction(req.id, 'ACCEPTED')}>Accept</Button>
                         <Button variant="danger-outline" size="sm" className="!h-[28px] !text-[11px] !px-[10px]" onClick={() => setReviewModal(req)}>Reject</Button>
                       </div>
                     )}
-                    {req.status === 'accepted' && <Button variant="ghost-green" size="sm" className="!h-[28px] !text-[11px] !px-[10px]" onClick={() => navigate('/messages')}>Message</Button>}
+                    {(req.status === 'ACCEPTED' || req.status === 'accepted') && (
+                      <Button variant="ghost-green" size="sm" className="!h-[28px] !text-[11px] !px-[10px]" onClick={() => navigate('/messages')}>Message</Button>
+                    )}
                   </td>
                 </tr>
               ))}

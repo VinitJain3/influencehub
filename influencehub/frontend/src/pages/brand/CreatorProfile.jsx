@@ -7,7 +7,6 @@ import Button from '../../components/ui/Button'
 import Avatar from '../../components/ui/Avatar'
 import TagPill from '../../components/ui/TagPill'
 import StatCard from '../../components/ui/StatCard'
-import Select from '../../components/ui/Select'
 import Textarea from '../../components/ui/Textarea'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
@@ -20,9 +19,7 @@ export default function CreatorProfile() {
   const [creator, setCreator] = useState(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
-  const [campaigns, setCampaigns] = useState([])
-  const [selectedCampaign, setSelectedCampaign] = useState('')
-  const [message, setMessage] = useState('')
+  const [description, setDescription] = useState('')
   const [requestSent, setRequestSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
@@ -36,19 +33,15 @@ export default function CreatorProfile() {
       .then(res => setCreator(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))
-    client.get('/api/brand/campaigns', { params: { status: 'active' } })
-      .then(res => setCampaigns(res.data.campaigns || []))
-      .catch(() => {})
     client.get(`/api/creators/${id}/similar`)
       .then(res => setSimilar(res.data || []))
       .catch(() => {})
   }, [id])
 
   const sendRequest = async () => {
-    if (!selectedCampaign) return
     setSending(true)
     try {
-      await client.post('/api/requests', { creatorId: id, campaignId: selectedCampaign, message })
+      await client.post('/api/requests', { creatorId: creator?.userId, description })
       setRequestSent(true)
       toast.success('Collaboration request sent!')
       setTimeout(() => setIsRequestModalOpen(false), 2000)
@@ -174,7 +167,7 @@ export default function CreatorProfile() {
           !requestSent && (
             <div className="flex w-full gap-[12px]">
               <Button variant="ghost-dark" className="flex-1" onClick={() => setIsRequestModalOpen(false)}>Cancel</Button>
-              <Button className="flex-1" disabled={!selectedCampaign} loading={sending} onClick={sendRequest}>
+              <Button className="flex-1" loading={sending} onClick={sendRequest}>
                 Send Request
               </Button>
             </div>
@@ -199,29 +192,16 @@ export default function CreatorProfile() {
           </div>
         ) : (
           <div className="space-y-[16px]">
-            <Select 
-              label="Select Campaign" 
-              name="campaign" 
-              options={campaigns.map(c => ({ value: c.id, label: c.title }))}
-              placeholder={campaigns.length ? 'Select a campaign' : 'No active campaigns'} 
-              value={selectedCampaign}
-              onChange={e => setSelectedCampaign(e.target.value)} 
-            />
-            {!campaigns.length && (
-              <Link to="/brand/campaigns/new" className="text-[12px] text-[#108A00] hover:underline block">
-                + Create your first campaign
-              </Link>
-            )}
             <Textarea 
-              label="Message (Optional)" 
-              name="message" 
+              label="Description (Optional)" 
+              name="description" 
               rows={4} 
-              placeholder="Briefly describe why you'd like to work with this creator..."
-              value={message} 
-              onChange={e => setMessage(e.target.value)} 
+              placeholder="Briefly describe what you're looking for and why you'd like to work with this creator..."
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
             />
             <p className="text-[12px] text-[#888888] italic">
-              The creator will receive an email and a platform notification.
+              The creator will be notified. You can discuss details once they accept.
             </p>
           </div>
         )}

@@ -14,7 +14,7 @@ import VerifyEmail from './pages/VerifyEmail'
 import NotFound from './pages/NotFound'
 
 // Brand pages
-import BrandDashboard from './pages/brand/Dashboard'
+// Dashboard removed – brand lands on Discover Creators
 import DiscoverCreators from './pages/brand/DiscoverCreators'
 import CreatorProfile from './pages/brand/CreatorProfile'
 import MyCampaigns from './pages/brand/MyCampaigns'
@@ -38,14 +38,14 @@ function ProtectedRoute({ children, allowedRole }) {
   const { isAuthenticated, role } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (allowedRole && role !== allowedRole) {
-    return <Navigate to={role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard'} replace />
+    return <Navigate to={role === 'brand' ? '/brand/discover' : '/influencer/dashboard'} replace />
   }
   return children
 }
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, role } = useAuthStore()
-  if (isAuthenticated) return <Navigate to={role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard'} replace />
+  if (isAuthenticated) return <Navigate to={role === 'brand' ? '/brand/discover' : '/influencer/dashboard'} replace />
   return children
 }
 
@@ -66,7 +66,7 @@ export default function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Brand Portal */}
-        <Route path="/brand/dashboard" element={<ProtectedRoute allowedRole="brand"><BrandDashboard /></ProtectedRoute>} />
+        <Route path="/brand/dashboard" element={<Navigate to="/brand/discover" replace />} />
         <Route path="/brand/discover" element={<ProtectedRoute allowedRole="brand"><DiscoverCreators /></ProtectedRoute>} />
         <Route path="/brand/creator/:id" element={<ProtectedRoute allowedRole="brand"><CreatorProfile /></ProtectedRoute>} />
         <Route path="/brand/campaigns" element={<ProtectedRoute allowedRole="brand"><MyCampaigns /></ProtectedRoute>} />

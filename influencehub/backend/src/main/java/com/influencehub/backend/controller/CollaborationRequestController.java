@@ -17,6 +17,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * CollaborationRequestController — handles brand-to-creator collaboration requests.
+ *
+ * Design Patterns used:
+ *  - Facade Pattern: This controller acts as a facade over the repository layer,
+ *    providing a simplified API surface for request lifecycle management.
+ *  - Strategy Pattern (implicit): Status transitions (PENDING → ACCEPTED / REJECTED)
+ *    are handled via a status-update endpoint, keeping logic centralized.
+ */
 @RestController
 @RequestMapping("/api")
 public class CollaborationRequestController {
@@ -47,6 +56,12 @@ public class CollaborationRequestController {
         return null;
     }
 
+    /**
+     * POST /api/requests
+     * Brand sends a collaboration request to a creator.
+     * campaignId is OPTIONAL — brand can send a request without linking to a campaign.
+     * A description field allows the brand to describe their intent.
+     */
     @PostMapping("/requests")
     public ResponseEntity<?> createRequest(@RequestBody Map<String, Object> body,
             @RequestHeader("Authorization") String authHeader) {
@@ -54,32 +69,66 @@ public class CollaborationRequestController {
         if (brandUser == null)
             return ResponseEntity.status(401).body("Unauthorized");
 
-        Long creatorId = Long.valueOf(body.get("creatorId").toString());
-        Long campaignId = Long.valueOf(body.get("campaignId").toString());
-        String message = (String) body.get("message");
+        Object creatorIdObj = body.get("creatorId");
+        if (creatorIdObj == null)
+            return ResponseEntity.badRequest().body("creatorId is required");
+
+        Long creatorId = Long.valueOf(creatorIdObj.toString());
+        String description = (String) body.get("description");
+        String message = (String) body.get("message"); // backwards compat
 
         Optional<User> creatorOpt = userRepository.findById(creatorId);
-        Optional<Campaign> campaignOpt = campaignRepository.findById(campaignId);
+        if (creatorOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Invalid creatorId");
+        }
 
-        if (creatorOpt.isEmpty() || campaignOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("Invalid creator or campaign ID");
+        // Check for existing pending request to avoid duplicates
+        List<CollaborationRequest> existing = requestRepository.findAllByBrand(brandUser)
+                .stream()
+                .filter(r -> r.getCreator().getId().equals(creatorId) && "PENDING".equals(r.getStatus()))
+                .collect(Collectors.toList());
+        if (!existing.isEmpty()) {
+            return ResponseEntity.badRequest().body("A pending request to this creator already exists.");
         }
 
         CollaborationRequest request = new CollaborationRequest();
         request.setBrand(brandUser);
         request.setCreator(creatorOpt.get());
-        request.setCampaign(campaignOpt.get());
-        request.setMessage(message);
+        request.setDescription(description != null ? description : message);
+        request.setMessage(message); // keep for backwards compat
+
+        // campaignId is optional
+        if (body.get("campaignId") != null) {
+            try {
+                Long campaignId = Long.valueOf(body.get("campaignId").toString());
+                campaignRepository.findById(campaignId).ifPresent(request::setCampaign);
+            } catch (NumberFormatException ignored) {}
+        }
 
         CollaborationRequest saved = requestRepository.save(request);
 
-        // Notify influencer
-        notificationService.notify(creatorOpt.get(), "request",
-                "New collaboration request for campaign: " + campaignOpt.get().getTitle(), "/influencer/requests");
+        // Notify the influencer — Observer-style notification via NotificationService
+        String campaignName = saved.getCampaign() != null ? saved.getCampaign().getTitle() : "a new opportunity";
+        notificationService.notify(
+                creatorOpt.get(),
+                "request",
+                brandUser.getName() + " sent you a collaboration request for " + campaignName,
+                "/influencer/requests"
+        );
 
-        return ResponseEntity.ok(saved);
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", saved.getId());
+        response.put("status", saved.getStatus());
+        response.put("creatorId", saved.getCreator().getId());
+        response.put("timestamp", saved.getTimestamp());
+
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * GET /api/brand/requests
+     * Returns all collaboration requests sent by the authenticated brand.
+     */
     @GetMapping("/brand/requests")
     public ResponseEntity<?> getBrandRequests(@RequestHeader("Authorization") String authHeader) {
         User user = getCurrentUser(authHeader);
@@ -91,17 +140,24 @@ public class CollaborationRequestController {
         List<Map<String, Object>> responseList = requests.stream().map(r -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", r.getId());
-            map.put("campaignTitle", r.getCampaign().getTitle());
+            // Campaign title is optional since campaign may be null
+            map.put("campaignTitle", r.getCampaign() != null ? r.getCampaign().getTitle() : null);
             map.put("creatorName", r.getCreator().getName());
+            map.put("creatorId", r.getCreator().getId());
             map.put("status", r.getStatus());
             map.put("timestamp", r.getTimestamp());
-            map.put("message", r.getMessage());
+            // Use description if available, fall back to message
+            map.put("message", r.getDescription() != null ? r.getDescription() : r.getMessage());
             return map;
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(responseList);
     }
 
+    /**
+     * GET /api/influencer/requests
+     * Returns all collaboration requests received by the authenticated influencer.
+     */
     @GetMapping("/influencer/requests")
     public ResponseEntity<?> getInfluencerRequests(@RequestHeader("Authorization") String authHeader) {
         User user = getCurrentUser(authHeader);
@@ -113,17 +169,23 @@ public class CollaborationRequestController {
         List<Map<String, Object>> responseList = requests.stream().map(r -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", r.getId());
-            map.put("campaignTitle", r.getCampaign().getTitle());
+            map.put("campaignTitle", r.getCampaign() != null ? r.getCampaign().getTitle() : null);
             map.put("brandName", r.getBrand().getName());
+            map.put("brandId", r.getBrand().getId());
             map.put("status", r.getStatus());
             map.put("timestamp", r.getTimestamp());
-            map.put("message", r.getMessage());
+            map.put("message", r.getDescription() != null ? r.getDescription() : r.getMessage());
             return map;
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(responseList);
     }
 
+    /**
+     * PUT /api/requests/{id}/status
+     * Influencer accepts or rejects a collaboration request.
+     * Only the creator (recipient) of the request can update the status.
+     */
     @PutMapping("/requests/{id}/status")
     public ResponseEntity<?> updateRequestStatus(@PathVariable Long id, @RequestBody Map<String, String> body,
             @RequestHeader("Authorization") String authHeader) {
@@ -140,7 +202,7 @@ public class CollaborationRequestController {
             return ResponseEntity.notFound().build();
 
         CollaborationRequest req = reqOpt.get();
-        // Only the recipient (influencer) can update status
+        // Only the recipient (influencer/creator) can update status
         if (!req.getCreator().getId().equals(user.getId())) {
             return ResponseEntity.status(403).body("Forbidden");
         }
@@ -148,11 +210,18 @@ public class CollaborationRequestController {
         req.setStatus(status.toUpperCase());
         requestRepository.save(req);
 
-        // Notify brand
-        notificationService.notify(req.getBrand(), "request",
-                user.getName() + " has " + status.toLowerCase() + " your request for " + req.getCampaign().getTitle(),
-                "/brand/requests");
+        // Notify brand — Observer pattern via NotificationService
+        String statusLabel = status.toLowerCase();
+        notificationService.notify(
+                req.getBrand(),
+                "request",
+                user.getName() + " has " + statusLabel + " your collaboration request",
+                "/brand/requests"
+        );
 
-        return ResponseEntity.ok(req);
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", req.getId());
+        response.put("status", req.getStatus());
+        return ResponseEntity.ok(response);
     }
 }

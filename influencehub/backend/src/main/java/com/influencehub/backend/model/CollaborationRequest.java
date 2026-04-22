@@ -15,7 +15,7 @@ public class CollaborationRequest {
 
     @ManyToOne
     @JoinColumn(name = "campaign_id")
-    private Campaign campaign;
+    private Campaign campaign; // optional – brand may not link a specific campaign
 
     @ManyToOne
     @JoinColumn(name = "creator_id")
@@ -26,7 +26,10 @@ public class CollaborationRequest {
     private User brand;
 
     @Column(columnDefinition = "TEXT")
-    private String message;
+    private String message; // legacy field
+
+    @Column(columnDefinition = "TEXT")
+    private String description; // optional brand description when no campaign is selected
 
     private String status; // PENDING, ACCEPTED, REJECTED, COMPLETED
 
