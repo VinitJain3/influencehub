@@ -1,9 +1,9 @@
-package com.influencehub.backend.controller;
+package com.influencehub.backend.brand.controller;
 
 import com.influencehub.backend.config.JwtUtil;
-import com.influencehub.backend.model.Campaign;
+import com.influencehub.backend.brand.model.Campaign;
 import com.influencehub.backend.model.User;
-import com.influencehub.backend.repository.CampaignRepository;
+import com.influencehub.backend.brand.repository.CampaignRepository;
 import com.influencehub.backend.repository.UserRepository;
 import com.influencehub.backend.repository.CollaborationRequestRepository;
 import com.influencehub.backend.service.NotificationService;

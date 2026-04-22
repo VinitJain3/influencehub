@@ -1,6 +1,6 @@
-package com.influencehub.backend.repository;
+package com.influencehub.backend.brand.repository;
 
-import com.influencehub.backend.model.Campaign;
+import com.influencehub.backend.brand.model.Campaign;
 import com.influencehub.backend.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;

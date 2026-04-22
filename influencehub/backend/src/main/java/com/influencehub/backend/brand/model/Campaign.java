@@ -1,9 +1,11 @@
-package com.influencehub.backend.model;
+package com.influencehub.backend.brand.model;
 
+import com.influencehub.backend.model.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -24,8 +26,15 @@ public class Campaign {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String contentTypes; // Comma-separated
-    private String platforms;    // Comma-separated
+    @ElementCollection
+    @CollectionTable(name = "campaign_content_types", joinColumns = @JoinColumn(name = "campaign_id"))
+    @Column(name = "content_type")
+    private List<String> contentTypes;
+
+    @ElementCollection
+    @CollectionTable(name = "campaign_platforms", joinColumns = @JoinColumn(name = "campaign_id"))
+    @Column(name = "platform")
+    private List<String> platforms;
     
     private String minFollowers;
     private String minEngagement;

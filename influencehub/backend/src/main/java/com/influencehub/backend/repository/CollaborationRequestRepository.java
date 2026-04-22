@@ -2,7 +2,7 @@ package com.influencehub.backend.repository;
 
 import com.influencehub.backend.model.CollaborationRequest;
 import com.influencehub.backend.model.User;
-import com.influencehub.backend.model.Campaign;
+import com.influencehub.backend.brand.model.Campaign;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 

@@ -1,5 +1,6 @@
 package com.influencehub.backend.model;
 
+import com.influencehub.backend.brand.model.Campaign;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;

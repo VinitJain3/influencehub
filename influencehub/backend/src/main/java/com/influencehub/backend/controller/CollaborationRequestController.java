@@ -1,10 +1,10 @@
 package com.influencehub.backend.controller;
 
 import com.influencehub.backend.config.JwtUtil;
-import com.influencehub.backend.model.Campaign;
+import com.influencehub.backend.brand.model.Campaign;
 import com.influencehub.backend.model.CollaborationRequest;
 import com.influencehub.backend.model.User;
-import com.influencehub.backend.repository.CampaignRepository;
+import com.influencehub.backend.brand.repository.CampaignRepository;
 import com.influencehub.backend.repository.CollaborationRequestRepository;
 import com.influencehub.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +29,9 @@ public class CollaborationRequestController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private com.influencehub.backend.service.NotificationService notificationService;
