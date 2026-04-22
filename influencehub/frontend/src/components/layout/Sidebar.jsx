@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, Megaphone, Inbox, MessageSquare,
+  Users, Megaphone, Inbox, MessageSquare,
   Settings, Send, User
 } from 'lucide-react'
 import Avatar from '../ui/Avatar'
@@ -18,7 +18,6 @@ const brandNav = [
 ]
 
 const influencerNav = [
-  { icon: LayoutDashboard, label: 'Dashboard', to: '/influencer/dashboard' },
   { icon: Megaphone, label: 'Browse Campaigns', to: '/influencer/campaigns' },
   { icon: Send, label: 'My Requests', to: '/influencer/requests', badgeKey: 'pending' },
   { icon: MessageSquare, label: 'Messages', to: '/messages', badgeKey: 'unread' },

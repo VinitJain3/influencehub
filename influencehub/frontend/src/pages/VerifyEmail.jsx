@@ -64,7 +64,7 @@ export default function VerifyEmail() {
             <CheckCircle size={40} className="text-[#108A00] mx-auto mb-[14px]" />
             <h2 className="text-[20px] font-semibold text-[#1C1C1C] mb-[8px]">Email verified!</h2>
             <p className="text-[14px] text-[#888888] mb-[20px]">Your email has been successfully verified.</p>
-            <Link to="/login"><Button fullWidth>Go to Dashboard</Button></Link>
+            <Link to="/login"><Button fullWidth>Go Home</Button></Link>
           </>
         )}
 

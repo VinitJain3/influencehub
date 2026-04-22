@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { MapPin, Globe, Camera, Edit, CheckCircle } from 'lucide-react'
+import { MapPin, Globe, Camera, Edit, CheckCircle, Upload } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -26,23 +26,103 @@ export default function InfluencerProfile() {
   const [editMode, setEditMode] = useState(false)
   const [editPlatforms, setEditPlatforms] = useState([])
   const [saving, setSaving] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState(null)   // base64 preview
+  const [coverPreview, setCoverPreview] = useState(null)     // base64 preview
+  const [pendingAvatar, setPendingAvatar] = useState(null)   // to send on save
+  const [pendingCover, setPendingCover] = useState(null)     // to send on save
+  const avatarInputRef = useRef(null)
+  const coverInputRef = useRef(null)
+  const portfolioInputRef = useRef(null)
+  const [portfolioUploading, setPortfolioUploading] = useState(false)
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const navigate = useNavigate()
   const { toast } = useToast()
 
   useEffect(() => {
     client.get('/api/influencer/profile')
-      .then(res => { setProfile(res.data); reset(res.data); setEditPlatforms(res.data.platforms || []) })
+      .then(res => {
+        setProfile(res.data)
+        reset(res.data)
+        setEditPlatforms(res.data.platforms || [])
+        if (res.data.avatar) setAvatarPreview(res.data.avatar)
+        if (res.data.coverPhoto) setCoverPreview(res.data.coverPhoto)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
+  const readFileAsBase64 = (file) => new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target.result)
+    reader.readAsDataURL(file)
+  })
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const b64 = await readFileAsBase64(file)
+    setAvatarPreview(b64)
+    setPendingAvatar(b64)
+    // Auto-save immediately
+    try {
+      const res = await client.put('/api/influencer/profile', { avatar: b64 })
+      setProfile(res.data)
+      updateUser(res.data)
+      setPendingAvatar(null)
+      toast.success('Profile photo updated!')
+    } catch { toast.error('Failed to save photo') }
+  }
+
+  const handleCoverChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const b64 = await readFileAsBase64(file)
+    setCoverPreview(b64)
+    setPendingCover(b64)
+    // Auto-save immediately
+    try {
+      const res = await client.put('/api/influencer/profile', { coverPhoto: b64 })
+      setProfile(res.data)
+      updateUser(res.data)
+      setPendingCover(null)
+      toast.success('Cover photo updated!')
+    } catch { toast.error('Failed to save cover photo') }
+  }
+
+  const handlePortfolioAdd = async (e) => {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    setPortfolioUploading(true)
+    try {
+      for (const file of files) {
+        const b64 = await readFileAsBase64(file)
+        const res = await client.post('/api/influencer/portfolio', { image: b64 })
+        setProfile(prev => ({ ...prev, portfolio: res.data.portfolio }))
+      }
+      toast.success(files.length > 1 ? `${files.length} works added!` : 'Work added to portfolio!')
+    } catch { toast.error('Failed to upload') }
+    finally { setPortfolioUploading(false); e.target.value = '' }
+  }
+
+  const handlePortfolioDelete = async (index) => {
+    try {
+      const res = await client.delete(`/api/influencer/portfolio/${index}`)
+      setProfile(prev => ({ ...prev, portfolio: res.data.portfolio }))
+      toast.success('Removed from portfolio')
+    } catch { toast.error('Failed to remove') }
+  }
+
   const onSave = async (data) => {
     setSaving(true)
     try {
-      const res = await client.put('/api/influencer/profile', { ...data, platforms: editPlatforms })
+      const payload = { ...data, platforms: editPlatforms }
+      if (pendingAvatar) payload.avatar = pendingAvatar
+      if (pendingCover) payload.coverPhoto = pendingCover
+      const res = await client.put('/api/influencer/profile', payload)
       setProfile(res.data)
       updateUser(res.data)
+      setPendingAvatar(null)
+      setPendingCover(null)
       setEditMode(false)
       toast.success('Profile updated!')
     } catch { toast.error('Failed to update') }
@@ -51,20 +131,47 @@ export default function InfluencerProfile() {
 
   return (
     <AppLayout role="influencer">
-      <div className="flex gap-[24px] items-start">
-        <div className="flex-1 min-w-0 flex flex-col gap-[20px]">
+      <div className="flex flex-col gap-[20px]">
           {/* Hero */}
           <Card className="!p-0 overflow-hidden relative">
-            <div className="h-[140px] bg-[#F0F0EB] relative">
-              <button className="absolute right-[12px] bottom-[12px] bg-white/80 rounded-full w-[32px] h-[32px] flex items-center justify-center cursor-pointer hover:bg-white transition-colors">
-                <Camera size={16} className="text-[#888888]" />
-              </button>
+            {/* Hidden file inputs */}
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+
+            {/* Cover photo */}
+            <div
+              className="h-[140px] relative cursor-pointer group"
+              style={{
+                background: coverPreview ? `url(${coverPreview}) center/cover no-repeat` : '#F0F0EB'
+              }}
+              onClick={() => coverInputRef.current?.click()}
+            >
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full px-[12px] py-[6px] flex items-center gap-[6px]">
+                  <Camera size={14} className="text-white" />
+                  <span className="text-[12px] text-white font-medium">Change Cover</span>
+                </div>
+              </div>
             </div>
-            <Avatar name={user?.name} src={user?.avatar} size={64} className="absolute top-[108px] left-[24px] border-[3px] border-white" />
-            <div className="absolute top-[148px] right-[20px]">
+
+            <div className="relative px-[24px] pb-[24px] pt-[56px]">
+            {/* Avatar with click-to-upload */}
+            <div
+              className="absolute top-[-36px] left-[24px] cursor-pointer group"
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {avatarPreview
+                ? <img src={avatarPreview} alt="avatar" className="w-[72px] h-[72px] rounded-full object-cover border-[4px] border-white shadow" />
+                : <Avatar name={user?.name} size={72} className="border-[4px] border-white" />
+              }
+              <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                <Camera size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
+
+            <div className="absolute top-[16px] right-[20px]">
               <Button variant="ghost-dark" size="sm" leftIcon={Edit} onClick={() => setEditMode(true)}>Edit Profile</Button>
             </div>
-            <div className="pt-[44px] px-[24px] pb-[24px]">
               {loading ? <Skeleton height={24} width={200} /> : (
                 <>
                   <div className="flex items-center gap-[8px]">
@@ -95,23 +202,58 @@ export default function InfluencerProfile() {
 
           {/* Portfolio */}
           <Card>
-            <div className="flex justify-between items-center mb-[12px]">
+            {/* Hidden portfolio file input — allows multiple */}
+            <input ref={portfolioInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePortfolioAdd} />
+
+            <div className="flex justify-between items-center mb-[16px]">
               <h3 className="text-[16px] font-semibold text-[#1C1C1C]">Portfolio</h3>
-              <Button variant="ghost-green" size="sm">+ Add Work</Button>
+              <Button
+                variant="ghost-green"
+                size="sm"
+                loading={portfolioUploading}
+                onClick={() => portfolioInputRef.current?.click()}
+              >
+                + Add Work
+              </Button>
             </div>
+
             {profile?.portfolio?.length ? (
-              <div className="grid grid-cols-3 gap-[10px]">
+              <div className="grid grid-cols-3 gap-[12px]">
                 {profile.portfolio.map((img, i) => (
-                  <div key={i} className="h-[150px] bg-[#F0F0EB] rounded-[8px] overflow-hidden">
-                    <img src={img} alt="Portfolio" className="w-full h-full object-cover" />
+                  <div key={i} className="relative group h-[160px] rounded-[10px] overflow-hidden bg-[#F0F0EB]">
+                    <img src={img} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover" />
+                    {/* Hover overlay with delete button */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <button
+                        onClick={() => handlePortfolioDelete(i)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white rounded-full w-[32px] h-[32px] flex items-center justify-center text-[#C0392B] shadow"
+                        title="Remove"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ))}
+                {/* Always-visible add tile */}
+                <button
+                  onClick={() => portfolioInputRef.current?.click()}
+                  className="h-[160px] rounded-[10px] border-2 border-dashed border-[#E0E0DB] hover:border-[#108A00] transition-colors flex flex-col items-center justify-center gap-[8px] text-[#888888] hover:text-[#108A00] cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  <span className="text-[12px] font-medium">Add more</span>
+                </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center py-[30px]">
-                <p className="text-[13px] text-[#888888] mb-[10px]">No portfolio items yet.</p>
-                <Button variant="ghost-green" size="sm">Upload Your First Work</Button>
-              </div>
+              <button
+                onClick={() => portfolioInputRef.current?.click()}
+                className="w-full flex flex-col items-center py-[40px] border-2 border-dashed border-[#E0E0DB] rounded-[12px] hover:border-[#108A00] transition-colors group cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2" className="text-[#CCCCCC] group-hover:text-[#108A00] transition-colors mb-[10px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                <p className="text-[14px] font-medium text-[#888888] group-hover:text-[#108A00] transition-colors">Upload your work</p>
+                <p className="text-[12px] text-[#BBBBBB] mt-[4px]">PNG, JPG, WEBP — multiple files supported</p>
+              </button>
             )}
           </Card>
 
@@ -138,46 +280,6 @@ export default function InfluencerProfile() {
               <p className="text-[13px] text-[#888888]">No reviews yet. Complete collaborations to get reviews!</p>
             )}
           </Card>
-        </div>
-
-        {/* Right Rail */}
-        <div className="w-[304px] flex-shrink-0 sticky top-[84px] flex flex-col gap-[16px]">
-          <Card className="flex flex-col items-center py-[24px]">
-            <p className="text-[12px] font-semibold text-[#888888] uppercase tracking-[1px] mb-[10px]">Profile Completeness</p>
-            <ProfileRing value={profile?.completeness ?? 0} />
-            {(profile?.completeness ?? 0) < 100 && (
-              <Button variant="ghost-green" size="sm" className="mt-[14px]" onClick={() => setEditMode(true)}>Complete Profile</Button>
-            )}
-          </Card>
-
-          <Card>
-            <h4 className="text-[14px] font-semibold text-[#1C1C1C] mb-[12px]">Rates</h4>
-            <div className="space-y-[8px]">
-              {[
-                { label: 'Base Rate (Post)', value: profile?.baseRate ? `₹${profile.baseRate}` : '--' },
-                { label: 'Story Rate', value: profile?.storyRate ? `₹${profile.storyRate}` : '--' },
-                { label: 'Video Rate', value: profile?.videoRate ? `₹${profile.videoRate}` : '--' },
-              ].map((item, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="text-[12px] text-[#888888]">{item.label}</span>
-                  <span className="text-[13px] font-semibold text-[#1C1C1C]">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <h4 className="text-[14px] font-semibold text-[#1C1C1C] mb-[10px]">Account Info</h4>
-            <div className="space-y-[8px]">
-              {[{ label: 'Email', value: user?.email },{ label: 'Member Since', value: profile?.joinDate }].map((item, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="text-[12px] text-[#888888]">{item.label}</span>
-                  <span className="text-[12px] font-medium text-[#1C1C1C]">{item.value || '--'}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
       </div>
 
       {/* Edit Modal */}
@@ -201,6 +303,13 @@ export default function InfluencerProfile() {
             <Input label="Video Rate" name="videoRate" prefix="₹" type="number" register={(n) => register(n)} />
           </div>
           <Input label="Portfolio URL" name="website" type="url" register={(n) => register(n)} />
+          <p className="text-[13px] font-semibold text-[#1C1C1C] mt-[4px]">Stats</p>
+          <div className="grid grid-cols-2 gap-[16px]">
+            <Input label="Followers" name="followerCount" placeholder="e.g. 25K" register={(n) => register(n)} />
+            <Input label="Engagement Rate" name="engagementRate" placeholder="e.g. 4.5%" register={(n) => register(n)} />
+            <Input label="Posts / Month" name="postsPerMonth" placeholder="e.g. 12" register={(n) => register(n)} />
+            <Input label="Avg Reach" name="avgReach" placeholder="e.g. 50K" register={(n) => register(n)} />
+          </div>
         </form>
       </Modal>
     </AppLayout>

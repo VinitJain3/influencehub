@@ -22,8 +22,6 @@ import NewCampaign from './pages/brand/NewCampaign'
 import BrandRequests from './pages/brand/Requests'
 import BrandProfile from './pages/brand/Profile'
 
-// Influencer pages
-import InfluencerDashboard from './pages/influencer/Dashboard'
 import BrowseCampaigns from './pages/influencer/BrowseCampaigns'
 import CampaignDetail from './pages/influencer/CampaignDetail'
 import MyRequests from './pages/influencer/MyRequests'
@@ -38,14 +36,14 @@ function ProtectedRoute({ children, allowedRole }) {
   const { isAuthenticated, role } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (allowedRole && role !== allowedRole) {
-    return <Navigate to={role === 'brand' ? '/brand/discover' : '/influencer/dashboard'} replace />
+    return <Navigate to={role === 'brand' ? '/brand/discover' : '/influencer/campaigns'} replace />
   }
   return children
 }
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, role } = useAuthStore()
-  if (isAuthenticated) return <Navigate to={role === 'brand' ? '/brand/discover' : '/influencer/dashboard'} replace />
+  if (isAuthenticated) return <Navigate to={role === 'brand' ? '/brand/discover' : '/influencer/campaigns'} replace />
   return children
 }
 
@@ -76,7 +74,7 @@ export default function App() {
         <Route path="/brand/profile" element={<ProtectedRoute allowedRole="brand"><BrandProfile /></ProtectedRoute>} />
 
         {/* Influencer Portal */}
-        <Route path="/influencer/dashboard" element={<ProtectedRoute allowedRole="influencer"><InfluencerDashboard /></ProtectedRoute>} />
+        <Route path="/influencer/dashboard" element={<Navigate to="/influencer/campaigns" replace />} />
         <Route path="/influencer/campaigns" element={<ProtectedRoute allowedRole="influencer"><BrowseCampaigns /></ProtectedRoute>} />
         <Route path="/influencer/campaigns/:id" element={<ProtectedRoute allowedRole="influencer"><CampaignDetail /></ProtectedRoute>} />
         <Route path="/influencer/requests" element={<ProtectedRoute allowedRole="influencer"><MyRequests /></ProtectedRoute>} />

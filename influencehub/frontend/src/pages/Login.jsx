@@ -26,7 +26,7 @@ export default function Login() {
       const res = await client.post('/api/auth/login', { ...data, rememberMe })
       login(res.data.user, res.data.token, res.data.role)
       if (rememberMe) localStorage.setItem('savedEmail', data.email)
-      navigate(res.data.role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard')
+      navigate(res.data.role === 'brand' ? '/brand/discover' : '/influencer/campaigns')
     } catch (err) {
       if (err.response?.status === 401) {
         setError('email', { message: 'Invalid email or password' })

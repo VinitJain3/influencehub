@@ -15,4 +15,7 @@ public class User {
     private String email;
     private String password;
     private String role;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String avatar;
 }
