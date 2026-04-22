@@ -54,7 +54,7 @@ export default function CreatorRegistration() {
       })
       loginFn(res.data.user, res.data.token, 'influencer')
       toast.success('Welcome to InfluenceHub!')
-      navigate('/influencer/dashboard')
+      navigate('/influencer/campaigns')
     } catch (err) {
       toast.error('Registration failed', 'Please try again.')
     } finally {

@@ -12,7 +12,6 @@ import TagPill from '../../components/ui/TagPill'
 import Pagination from '../../components/ui/Pagination'
 import EmptyState from '../../components/ui/EmptyState'
 import SkeletonCard from '../../components/ui/Skeleton'
-import { ChevronDown, ChevronUp } from 'lucide-react'
 import client from '../../api/client'
 
 const nicheList = ['Fashion','Beauty','Fitness','Food','Travel','Gaming','Tech','Finance','Lifestyle','Entertainment','Education','Comedy']
@@ -44,56 +43,9 @@ export default function BrowseCampaigns() {
 
   return (
     <AppLayout role="influencer">
-      <div className="flex gap-[20px]">
-        {/* Filter Panel */}
-        <div className="w-[268px] flex-shrink-0 sticky top-[84px] self-start">
-          <Card>
-            <div className="flex justify-between items-center mb-[16px]">
-              <h3 className="text-[15px] font-semibold text-[#1C1C1C]">Filters</h3>
-              <button onClick={() => setFilters({ niches: [], platforms: [], budget: '', search: '' })} className="text-[13px] text-[#C0392B] hover:underline cursor-pointer">Clear All</button>
-            </div>
-
-            <div className="mb-[14px]">
-              <div className="relative">
-                <Search size={14} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[#888888]" />
-                <input placeholder="Search campaigns..." value={filters.search} onChange={e => setFilters({ ...filters, search: e.target.value })}
-                  className="w-full h-[36px] border border-[#E0E0DB] rounded-[6px] pl-[32px] pr-[10px] text-[13px] outline-none focus:border-[#108A00]" />
-              </div>
-            </div>
-
-            <div className="border-b border-[#F0F0EB] pb-[14px] mb-[14px]">
-              <button onClick={() => toggleSection('niche')} className="flex justify-between items-center w-full text-[13px] font-semibold text-[#1C1C1C] mb-[8px] cursor-pointer">
-                Category {collapsed.niche ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-              </button>
-              {!collapsed.niche && (
-                <div className="max-h-[180px] overflow-y-auto space-y-[6px]">
-                  {nicheList.map(n => <Checkbox key={n} label={n} checked={filters.niches.includes(n)}
-                    onChange={() => setFilters({ ...filters, niches: filters.niches.includes(n) ? filters.niches.filter(x => x !== n) : [...filters.niches, n] })} />)}
-                </div>
-              )}
-            </div>
-
-            <div className="border-b border-[#F0F0EB] pb-[14px] mb-[14px]">
-              <button onClick={() => toggleSection('platform')} className="flex justify-between items-center w-full text-[13px] font-semibold text-[#1C1C1C] mb-[8px] cursor-pointer">
-                Platform {collapsed.platform ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-              </button>
-              {!collapsed.platform && (
-                <div className="space-y-[6px]">
-                  {['Instagram','YouTube','TikTok','Twitter/X','LinkedIn'].map(p => <Checkbox key={p} label={p} checked={filters.platforms.includes(p)}
-                    onChange={() => setFilters({ ...filters, platforms: filters.platforms.includes(p) ? filters.platforms.filter(x => x !== p) : [...filters.platforms, p] })} />)}
-                </div>
-              )}
-            </div>
-
-            <Select label="Budget Range" name="budget" options={budgetOptions} value={filters.budget}
-              onChange={e => setFilters({ ...filters, budget: e.target.value })} />
-
-            <Button fullWidth className="mt-[18px] !h-[38px]" onClick={apply}>Apply</Button>
-          </Card>
-        </div>
-
+      <div className="flex flex-col gap-[20px]">
         {/* Campaign List */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full min-w-0">
           <div className="flex justify-between items-center mb-[14px]">
             <p className="text-[13px] text-[#888888]">{total} campaigns found</p>
             <Select name="sort" options={sortOptions} value={sort} onChange={e => setSort(e.target.value)} className="w-[160px]" />
@@ -102,8 +54,7 @@ export default function BrowseCampaigns() {
           {loading ? (
             <div className="space-y-[14px]">{[1,2,3,4,5].map(i => <SkeletonCard key={i} />)}</div>
           ) : !results.length ? (
-            <Card><EmptyState icon={SearchX} title="No campaigns match" description="Try adjusting your filters."
-              action={{ label: 'Clear Filters', variant: 'ghost-green', onClick: () => setFilters({ niches: [], platforms: [], budget: '', search: '' }) }} /></Card>
+            <Card><EmptyState icon={SearchX} title="No campaigns match" description="There are no campaigns available right now." /></Card>
           ) : (
             <div className="space-y-[12px]">
               {results.map(c => (

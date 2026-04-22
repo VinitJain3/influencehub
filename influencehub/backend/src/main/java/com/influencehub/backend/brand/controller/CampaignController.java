@@ -46,6 +46,41 @@ public class CampaignController {
         return null;
     }
 
+    @GetMapping("/campaigns")
+    public ResponseEntity<?> getAllCampaigns(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String budget,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "1") int page) {
+
+        List<Campaign> campaigns = campaignRepository.findAll();
+
+        // Implement simple filtering if search or budget is provided...
+        // For now, we'll return all and map to the frontend expected shape.
+        List<Map<String, Object>> responseList = campaigns.stream().map(c -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", c.getId());
+            map.put("title", c.getTitle());
+            map.put("description", c.getDescription());
+            if (c.getBrand() != null) {
+                map.put("brandName", c.getBrand().getName());
+            }
+            map.put("verified", true); // Placeholder
+            map.put("contentTypes", c.getContentTypes());
+            map.put("platforms", c.getPlatforms());
+            map.put("budget", c.getBudgetMax() != null ? String.format("%.0f", c.getBudgetMax()) : "--");
+            map.put("deadline", c.getDraftDeadline() != null ? c.getDraftDeadline().toString() : "--");
+            map.put("requestCount", requestRepository.countByCampaign(c));
+            return map;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("campaigns", responseList);
+        response.put("total", responseList.size());
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/campaigns")
     public ResponseEntity<?> createCampaign(@RequestBody Campaign campaign, @RequestHeader("Authorization") String authHeader) {
         User user = getCurrentUser(authHeader);
@@ -85,7 +120,7 @@ public class CampaignController {
             map.put("id", c.getId());
             map.put("title", c.getTitle());
             map.put("status", c.getStatus());
-            map.put("budget", "₹" + c.getBudgetMin() + " - ₹" + c.getBudgetMax());
+            map.put("budget", c.getBudgetMax() != null ? String.format("%.0f", c.getBudgetMax()) : "--");
             map.put("requestCount", requestRepository.countByCampaign(c));
             map.put("acceptedCount", 0); // Placeholder
             map.put("postedDate", c.getPostedDate());
@@ -101,9 +136,38 @@ public class CampaignController {
     }
 
     @GetMapping("/campaigns/{id}")
-    public ResponseEntity<?> getCampaign(@PathVariable Long id) {
+    public ResponseEntity<?> getCampaign(@PathVariable Long id, @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        User currentUser = getCurrentUser(authHeader);
         return campaignRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(c -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", c.getId());
+                    map.put("title", c.getTitle());
+                    map.put("description", c.getDescription());
+                    map.put("industry", c.getIndustry());
+                    map.put("contentTypes", c.getContentTypes());
+                    map.put("platforms", c.getPlatforms());
+                    map.put("creatorCount", c.getCreatorCount());
+                    map.put("postedDate", c.getPostedDate());
+                    map.put("deliverables", c.getDeliverables());
+                    map.put("location", c.getLocation());
+                    
+                    if (c.getBrand() != null) {
+                        map.put("brandName", c.getBrand().getName());
+                    }
+                    map.put("verified", true);
+                    map.put("budget", c.getBudgetMax() != null ? String.format("%.0f", c.getBudgetMax()) : "--");
+                    map.put("deadline", c.getDraftDeadline() != null ? c.getDraftDeadline().toString() : "--");
+                    
+                    boolean hasApplied = false;
+                    if (currentUser != null && "influencer".equalsIgnoreCase(currentUser.getRole())) {
+                        hasApplied = requestRepository.findAllByCreator(currentUser).stream()
+                                .anyMatch(r -> r.getCampaign() != null && r.getCampaign().getId().equals(id));
+                    }
+                    map.put("hasApplied", hasApplied);
+                    
+                    return ResponseEntity.ok((Object) map);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

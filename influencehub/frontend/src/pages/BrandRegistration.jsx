@@ -63,7 +63,7 @@ export default function BrandRegistration() {
       })
       login(res.data.user, res.data.token, 'brand')
       toast.success('Welcome to InfluenceHub!')
-      navigate('/brand/dashboard')
+      navigate('/brand/discover')
     } catch (err) {
       if (err.response?.status === 422) {
         Object.entries(err.response.data.errors || {}).forEach(([k, v]) => {

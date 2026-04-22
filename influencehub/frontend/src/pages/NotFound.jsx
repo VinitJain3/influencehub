@@ -5,7 +5,7 @@ import Logo from '../components/ui/Logo'
 
 export default function NotFound() {
   const { isAuthenticated, role } = useAuthStore()
-  const dashboardPath = isAuthenticated ? (role === 'brand' ? '/brand/dashboard' : '/influencer/dashboard') : '/'
+  const dashboardPath = isAuthenticated ? (role === 'brand' ? '/brand/discover' : '/influencer/campaigns') : '/'
 
   return (
     <div className="bg-[#F5F5F0] min-h-screen flex flex-col items-center justify-center text-center">
@@ -17,7 +17,7 @@ export default function NotFound() {
         </p>
         <div className="flex gap-[12px] justify-center">
           <Link to={dashboardPath}>
-            <Button size="lg">← Go to Dashboard</Button>
+            <Button size="lg">← Go Home</Button>
           </Link>
           <a href="mailto:support@influencehub.in">
             <Button variant="ghost-dark" size="lg">Contact Support</Button>

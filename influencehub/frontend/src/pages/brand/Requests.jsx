@@ -36,7 +36,7 @@ export default function Requests() {
     setLoading(true)
     client.get('/api/brand/requests')
       .then(res => {
-        const data = Array.isArray(res.data) ? res.data : []
+        const data = res.data.requests || (Array.isArray(res.data) ? res.data : [])
         setAllRequests(data)
       })
       .catch(() => {})
@@ -147,7 +147,7 @@ export default function Requests() {
                   </td>
 
                   <td className="px-[16px] text-[12px] text-[#888888]">
-                    {req.timestamp ? new Date(req.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--'}
+                    {req.date || (req.timestamp ? new Date(req.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--')}
                   </td>
 
                   <td className="px-[16px]">

@@ -27,6 +27,14 @@ public class InfluencerProfile {
     private String baseRate;
     private String portfolioUrl;
     private String engagementRate;
+    private String postsPerMonth;
+    private String avgReach;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String coverPhoto;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String portfolioImages; // JSON array of base64 data URLs
 
     @OneToOne
     @JoinColumn(name = "user_id")
