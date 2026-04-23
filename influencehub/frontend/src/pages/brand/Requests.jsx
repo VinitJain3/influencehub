@@ -30,6 +30,13 @@ export default function Requests() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
+  const startChat = async (userId) => {
+    try {
+      const res = await client.post('/api/conversations', { otherUserId: userId })
+      navigate(`/messages?conversationId=${res.data.id}`)
+    } catch { toast.error('Failed to start conversation') }
+  }
+
   const campaignFilter = searchParams.get('campaign')
 
   const fetchRequests = () => {
@@ -159,7 +166,7 @@ export default function Requests() {
                     )
                   )}
                   {(req.status === 'ACCEPTED' || req.status === 'accepted') && (
-                    <Button variant="ghost-green" size="sm" onClick={() => navigate('/messages')}>Message Creator</Button>
+                    <Button variant="ghost-green" size="sm" onClick={() => startChat(req.creatorId)}>Message Creator</Button>
                   )}
                   {(req.status === 'REJECTED' || req.status === 'rejected') && (
                     <span className="text-[12px] text-[#888888] font-medium py-[4px]">

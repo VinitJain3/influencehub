@@ -24,6 +24,13 @@ export default function MyRequests() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
+  const startChat = async (userId) => {
+    try {
+      const res = await client.post('/api/conversations', { otherUserId: userId })
+      navigate(`/messages?conversationId=${res.data.id}`)
+    } catch { toast.error('Failed to start conversation') }
+  }
+
   useEffect(() => {
     setLoading(true)
     client.get('/api/influencer/requests', { params: { page } })
@@ -106,7 +113,7 @@ export default function MyRequests() {
                   </>
                 )}
                 {req.status === 'accepted' && (
-                  <Button variant="ghost-green" size="sm" onClick={() => navigate('/messages')}>Message Brand</Button>
+                  <Button variant="ghost-green" size="sm" onClick={() => startChat(req.brandId)}>Message Brand</Button>
                 )}
                 {req.status === 'rejected' && (
                   <span className="text-[12px] text-[#888888] font-medium py-[4px]">Declined</span>
