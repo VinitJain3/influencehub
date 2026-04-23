@@ -103,6 +103,7 @@ public class CollaborationRequestController {
             request.setBrand(campaign.getBrand());
             request.setCreator(currentUser);
             request.setCampaign(campaign);
+            request.setInitiatedBy("INFLUENCER");
 
             String message = (String) body.get("message");
             Object rateObj = body.get("proposedRate");
@@ -152,6 +153,7 @@ public class CollaborationRequestController {
             request.setCreator(creatorOpt.get());
             request.setDescription(description != null ? description : message);
             request.setMessage(message);
+            request.setInitiatedBy("BRAND");
 
             if (body.get("campaignId") != null) {
                 try {
@@ -210,6 +212,7 @@ public class CollaborationRequestController {
             map.put("creatorName", r.getCreator().getName());
             map.put("creatorId", r.getCreator().getId());
             map.put("status", r.getStatus() != null ? r.getStatus().toLowerCase() : "pending");
+            map.put("initiatedBy", r.getInitiatedBy());
             map.put("date", r.getTimestamp() != null ? r.getTimestamp().toLocalDate().toString() : "--");
 
             String msg = r.getDescription() != null ? r.getDescription() : r.getMessage();
@@ -239,7 +242,10 @@ public class CollaborationRequestController {
         if (user == null)
             return ResponseEntity.status(401).body("Unauthorized");
 
-        List<CollaborationRequest> requests = requestRepository.findAllByCreator(user);
+        List<CollaborationRequest> requests = requestRepository.findAllByCreator(user)
+                .stream()
+                .filter(r -> "BRAND".equals(r.getInitiatedBy()))
+                .collect(Collectors.toList());
         if (status != null && !status.isEmpty()) {
             requests = requests.stream()
                     .filter(r -> status.equalsIgnoreCase(r.getStatus()))
@@ -272,6 +278,43 @@ public class CollaborationRequestController {
         response.put("total", responseList.size());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * GET /api/influencer/applications
+     * Returns the influencer's own campaign applications (INFLUENCER-initiated).
+     * Used by Browse Campaigns page to show per-card status badges.
+     */
+    @GetMapping("/influencer/applications")
+    public ResponseEntity<?> getInfluencerApplications(
+            @RequestHeader("Authorization") String authHeader) {
+        User user = getCurrentUser(authHeader);
+        if (user == null) return ResponseEntity.status(401).body("Unauthorized");
+
+        List<CollaborationRequest> apps = requestRepository.findAllByCreator(user)
+                .stream()
+                .filter(r -> "INFLUENCER".equals(r.getInitiatedBy())
+                        || (r.getInitiatedBy() == null && r.getCampaign() != null))
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> responseList = apps.stream().map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            map.put("campaignId", r.getCampaign() != null ? r.getCampaign().getId() : null);
+            map.put("campaignTitle", r.getCampaign() != null ? r.getCampaign().getTitle() : null);
+            map.put("status", r.getStatus() != null ? r.getStatus().toLowerCase() : "pending");
+            map.put("date", r.getTimestamp() != null ? r.getTimestamp().toLocalDate().toString() : "--");
+            String msg = r.getDescription() != null ? r.getDescription() : r.getMessage();
+            map.put("message", msg);
+            if (msg != null && msg.contains("Proposed Rate: \u20b9")) {
+                int idx = msg.indexOf("Proposed Rate: \u20b9");
+                map.put("proposedRate", msg.substring(idx + 16).trim());
+            }
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responseList);
+    }
+
 
     /**
      * PUT /api/requests/{id}/status

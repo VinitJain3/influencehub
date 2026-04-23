@@ -21,12 +21,17 @@ export default function CampaignDetail() {
   const [proposedRate, setProposedRate] = useState('')
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState(false)
+  const [applicationStatus, setApplicationStatus] = useState(null)
   const navigate = useNavigate()
   const { toast } = useToast()
 
   useEffect(() => {
     client.get(`/api/campaigns/${id}`)
-      .then(res => { setCampaign(res.data); setApplied(res.data.hasApplied || false) })
+      .then(res => { 
+        setCampaign(res.data)
+        setApplied(res.data.hasApplied || false)
+        setApplicationStatus(res.data.applicationStatus)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
@@ -36,6 +41,7 @@ export default function CampaignDetail() {
     try {
       await client.post('/api/requests', { campaignId: id, message, proposedRate })
       setApplied(true)
+      setApplicationStatus('pending')
       toast.success('Application sent!')
     } catch { toast.error('Failed to apply') }
     finally { setApplying(false) }
@@ -119,10 +125,31 @@ export default function CampaignDetail() {
           <Card>
             {applied ? (
               <div className="text-center py-[16px]">
-                <CheckCircle size={28} className="text-[#108A00] mx-auto mb-[8px]" />
-                <h3 className="text-[16px] font-semibold text-[#1C1C1C] mb-[4px]">Application Sent</h3>
-                <p className="text-[13px] text-[#888888]">You'll be notified when the brand responds.</p>
-                <Button variant="ghost-dark" fullWidth className="mt-[16px]" onClick={() => navigate('/influencer/requests')}>View My Requests</Button>
+                {applicationStatus === 'accepted' ? (
+                  <>
+                    <div className="w-[48px] h-[48px] bg-[#E8F5E6] rounded-full flex items-center justify-center mx-auto mb-[12px]">
+                      <span className="text-[20px]">🎉</span>
+                    </div>
+                    <h3 className="text-[16px] font-semibold text-[#108A00] mb-[4px]">Congratulations!</h3>
+                    <p className="text-[13px] text-[#444444] leading-[1.5]">Your request is accepted. You can now talk to the brand.</p>
+                    <Button fullWidth className="mt-[16px]" onClick={() => navigate('/messages')}>Message Brand</Button>
+                  </>
+                ) : applicationStatus === 'rejected' ? (
+                  <>
+                    <div className="w-[48px] h-[48px] bg-[#FDEDEC] rounded-full flex items-center justify-center mx-auto mb-[12px]">
+                      <span className="text-[20px]">✗</span>
+                    </div>
+                    <h3 className="text-[16px] font-semibold text-[#C0392B] mb-[4px]">Not Selected</h3>
+                    <p className="text-[13px] text-[#888888] leading-[1.5]">Your request was rejected. Keep exploring!</p>
+                    <Button variant="ghost-dark" fullWidth className="mt-[16px]" onClick={() => navigate('/influencer/campaigns')}>Browse More</Button>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={28} className="text-[#108A00] mx-auto mb-[8px]" />
+                    <h3 className="text-[16px] font-semibold text-[#1C1C1C] mb-[4px]">Application Sent</h3>
+                    <p className="text-[13px] text-[#888888] leading-[1.5]">Please wait for your request to be accepted.</p>
+                  </>
+                )}
               </div>
             ) : (
               <>

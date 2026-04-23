@@ -94,107 +94,84 @@ export default function Requests() {
         )}
       </div>
 
-      {/* Table */}
-      <Card className="!p-0 overflow-hidden">
-        {loading ? (
-          <div className="p-[20px] space-y-[8px]">{[1,2,3,4,5].map(i => <Skeleton key={i} height={68} />)}</div>
-        ) : !requests.length ? (
-          <EmptyState
-            icon={Inbox}
-            title={activeTab === 'all' ? 'No requests yet' : `No ${activeTab} requests`}
-            description="Requests you send to creators will appear here."
-          />
-        ) : (
-          <table className="w-full" style={{ tableLayout: 'fixed' }}>
-            <thead>
-              <tr className="bg-[#FAFAF8] border-b border-[#F0F0EB]">
-                <th className="text-left px-[16px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase w-[200px]">Creator</th>
-                <th className="text-left px-[16px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase">Description</th>
-                <th className="text-left px-[16px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase w-[110px]">Date</th>
-                <th className="text-left px-[16px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase w-[110px]">Status</th>
-                <th className="text-left px-[16px] py-[10px] text-[11px] font-semibold text-[#888888] uppercase w-[200px]">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map(req => (
-                <tr key={req.id} className="border-b border-[#F0F0EB] h-[72px] hover:bg-[#FAFAF8]">
-                  {/* Creator cell — click name to view profile */}
-                  <td className="px-[16px]">
-                    <div className="flex items-center gap-[8px]">
-                      <Avatar name={req.creatorName} size={32} />
-                      <div className="min-w-0">
-                        <button
-                          onClick={() => req.creatorProfileId && navigate(`/brand/creator/${req.creatorProfileId}`)}
-                          className={`text-[13px] font-semibold text-[#1C1C1C] truncate block max-w-[120px] ${req.creatorProfileId ? 'hover:text-[#108A00] cursor-pointer' : ''}`}
-                          title={req.creatorProfileId ? 'View creator profile' : req.creatorName}
-                        >
-                          {req.creatorName}
-                        </button>
-                        {req.creatorProfileId && (
-                          <button
-                            onClick={() => navigate(`/brand/creator/${req.creatorProfileId}`)}
-                            className="text-[11px] text-[#108A00] hover:underline flex items-center gap-[2px] cursor-pointer"
-                          >
-                            <ExternalLink size={10} /> View Profile
-                          </button>
-                        )}
-                      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+          {[1,2,3,4].map(i => <Skeleton key={i} height={180} />)}
+        </div>
+      ) : !requests.length ? (
+        <Card><EmptyState icon={Inbox} title="No requests found" description="Requests you send to creators or applications from creators will appear here." /></Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
+          {requests.map(req => {
+            const isOutbound = req.initiatedBy === 'BRAND'
+            return (
+              <Card key={req.id} className="flex flex-col">
+                <div className="flex justify-between items-start mb-[12px]">
+                  <div className="flex items-center gap-[12px]">
+                    <Avatar name={req.creatorName} size={40} />
+                    <div className="min-w-0">
+                      <button
+                        onClick={() => navigate(`/brand/creator/${req.creatorId}`)}
+                        className="text-[15px] font-semibold text-[#1C1C1C] hover:text-[#108A00] truncate block max-w-[150px] text-left cursor-pointer"
+                        title="View Profile"
+                      >
+                        {req.creatorName}
+                      </button>
+                      <p className="text-[12px] text-[#888888]">{req.date || '--'}</p>
                     </div>
-                  </td>
-
-                  <td className="px-[16px] text-[13px] text-[#444444] max-w-[200px]">
-                    <span className="line-clamp-2">{req.message || <span className="text-[#BBBBBB]">No description</span>}</span>
-                  </td>
-
-                  <td className="px-[16px] text-[12px] text-[#888888]">
-                    {req.date || (req.timestamp ? new Date(req.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--')}
-                  </td>
-
-                  <td className="px-[16px]">
-                    <StatusChip status={req.status} />
-                  </td>
-
-                  <td className="px-[16px]">
-                    <div className="flex gap-[6px] flex-wrap">
-                      {/* Accept / Reject buttons for PENDING requests */}
-                      {(req.status === 'PENDING' || req.status === 'pending') && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="!h-[28px] !text-[11px] !px-[10px]"
-                            onClick={() => handleAction(req.id, 'ACCEPTED')}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            variant="danger-outline"
-                            size="sm"
-                            className="!h-[28px] !text-[11px] !px-[10px]"
-                            onClick={() => setReviewModal(req)}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      {/* Message button only shown after acceptance */}
-                      {(req.status === 'ACCEPTED' || req.status === 'accepted') && (
-                        <Button
-                          variant="ghost-green"
-                          size="sm"
-                          className="!h-[28px] !text-[11px] !px-[10px]"
-                          onClick={() => navigate('/messages')}
-                        >
-                          Message
-                        </Button>
-                      )}
+                  </div>
+                  <StatusChip status={req.status} />
+                </div>
+                
+                {/* Outbound requests just have a message, inbound usually have a campaign and rate */}
+                <div className="flex-1 flex flex-col gap-[8px] mb-[16px]">
+                  {!isOutbound && req.campaignTitle && (
+                    <div className="bg-[#FAFAF8] p-[8px] rounded-[6px] border border-[#F0F0EB]">
+                      <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[2px]">Applied to Campaign</p>
+                      <p className="text-[13px] font-semibold text-[#1C1C1C] line-clamp-1">{req.campaignTitle}</p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+                  )}
+                  
+                  {!isOutbound && req.proposedRate && (
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[2px]">Proposed Rate</p>
+                      <p className="text-[16px] font-bold text-[#108A00]">₹{req.proposedRate}</p>
+                    </div>
+                  )}
+
+                  <div className="mt-[4px]">
+                    <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[4px]">Message</p>
+                    <p className="text-[13px] text-[#444444] line-clamp-3 leading-[1.5]">
+                      {req.message || <span className="italic text-[#BBBBBB]">No message provided</span>}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-[16px] border-t border-[#F0F0EB] flex gap-[8px] justify-end mt-auto">
+                  {(req.status === 'PENDING' || req.status === 'pending') && (
+                    isOutbound ? (
+                      <span className="text-[12px] text-[#888888] font-medium py-[4px]">Awaiting creator response</span>
+                    ) : (
+                      <>
+                        <Button variant="ghost-dark" size="sm" onClick={() => setReviewModal(req)}>Reject</Button>
+                        <Button size="sm" onClick={() => handleAction(req.id, 'ACCEPTED')}>Accept</Button>
+                      </>
+                    )
+                  )}
+                  {(req.status === 'ACCEPTED' || req.status === 'accepted') && (
+                    <Button variant="ghost-green" size="sm" onClick={() => navigate('/messages')}>Message Creator</Button>
+                  )}
+                  {(req.status === 'REJECTED' || req.status === 'rejected') && (
+                    <span className="text-[12px] text-[#888888] font-medium py-[4px]">
+                      {isOutbound ? 'Declined by creator' : 'Rejected'}
+                    </span>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       <Pagination currentPage={page} totalPages={Math.ceil(total / 10) || 1} onPageChange={setPage} />
 
