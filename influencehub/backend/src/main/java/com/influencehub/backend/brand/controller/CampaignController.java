@@ -154,6 +154,7 @@ public class CampaignController {
                     
                     if (c.getBrand() != null) {
                         map.put("brandName", c.getBrand().getName());
+                        map.put("brandId", c.getBrand().getId());
                     }
                     map.put("verified", true);
                     map.put("budget", c.getBudgetMax() != null ? String.format("%.0f", c.getBudgetMax()) : "--");

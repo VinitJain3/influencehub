@@ -56,7 +56,14 @@ export default function Messages() {
     inputRef.current?.focus()
     try {
       await client.post(`/api/conversations/${activeId}/messages`, { text: msg.text })
-    } catch {}
+    } catch (err) {
+      // Revert optimistic update and show error
+      setMessages(activeId, messages[activeId].filter(m => m.id !== msg.id))
+      setText(msg.text)
+      import('../../store/toastStore').then(({ useToast }) => {
+        useToast.getState().toast.error('Failed to send message. Please try again.')
+      })
+    }
   }
 
   const filteredConversations = conversations.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))

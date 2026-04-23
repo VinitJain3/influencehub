@@ -25,6 +25,13 @@ export default function CampaignDetail() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
+  const startChat = async (userId) => {
+    try {
+      const res = await client.post('/api/conversations', { otherUserId: userId })
+      navigate(`/messages?conversationId=${res.data.id}`)
+    } catch { toast.error('Failed to start conversation') }
+  }
+
   useEffect(() => {
     client.get(`/api/campaigns/${id}`)
       .then(res => { 
@@ -132,7 +139,7 @@ export default function CampaignDetail() {
                     </div>
                     <h3 className="text-[16px] font-semibold text-[#108A00] mb-[4px]">Congratulations!</h3>
                     <p className="text-[13px] text-[#444444] leading-[1.5]">Your request is accepted. You can now talk to the brand.</p>
-                    <Button fullWidth className="mt-[16px]" onClick={() => navigate('/messages')}>Message Brand</Button>
+                    <Button fullWidth className="mt-[16px]" onClick={() => startChat(campaign?.brandId)}>Message Brand</Button>
                   </>
                 ) : applicationStatus === 'rejected' ? (
                   <>
