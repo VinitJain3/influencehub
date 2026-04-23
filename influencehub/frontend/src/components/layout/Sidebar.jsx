@@ -19,7 +19,7 @@ const brandNav = [
 
 const influencerNav = [
   { icon: Megaphone, label: 'Browse Campaigns', to: '/influencer/campaigns' },
-  { icon: Send, label: 'My Requests', to: '/influencer/requests', badgeKey: 'pending' },
+  { icon: Send, label: 'Requests', to: '/influencer/requests', badgeKey: 'pending' },
   { icon: MessageSquare, label: 'Messages', to: '/messages', badgeKey: 'unread' },
   { icon: User, label: 'My Profile', to: '/influencer/profile' },
   'separator',
@@ -56,10 +56,9 @@ export default function Sidebar({ role }) {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-[9px] px-[12px] py-[9px] rounded-[6px] mb-[2px] relative transition-colors duration-100 text-[13px] font-medium ${
-                  isActive
-                    ? 'bg-[#E8F5E6] text-[#108A00] font-semibold'
-                    : 'text-[#444444] hover:bg-[#F5F5F0]'
+                `flex items-center gap-[9px] px-[12px] py-[9px] rounded-[6px] mb-[2px] relative transition-colors duration-100 text-[13px] font-medium ${isActive
+                  ? 'bg-[#E8F5E6] text-[#108A00] font-semibold'
+                  : 'text-[#444444] hover:bg-[#F5F5F0]'
                 }`
               }
             >

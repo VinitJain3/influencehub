@@ -160,11 +160,19 @@ public class CampaignController {
                     map.put("deadline", c.getDraftDeadline() != null ? c.getDraftDeadline().toString() : "--");
                     
                     boolean hasApplied = false;
+                    String applicationStatus = null;
                     if (currentUser != null && "influencer".equalsIgnoreCase(currentUser.getRole())) {
-                        hasApplied = requestRepository.findAllByCreator(currentUser).stream()
-                                .anyMatch(r -> r.getCampaign() != null && r.getCampaign().getId().equals(id));
+                        java.util.Optional<com.influencehub.backend.model.CollaborationRequest> req = requestRepository.findAllByCreator(currentUser).stream()
+                                .filter(r -> r.getCampaign() != null && r.getCampaign().getId().equals(id)
+                                          && ("INFLUENCER".equals(r.getInitiatedBy()) || r.getInitiatedBy() == null))
+                                .findFirst();
+                        if (req.isPresent()) {
+                            hasApplied = true;
+                            applicationStatus = req.get().getStatus();
+                        }
                     }
                     map.put("hasApplied", hasApplied);
+                    map.put("applicationStatus", applicationStatus != null ? applicationStatus.toLowerCase() : null);
                     
                     return ResponseEntity.ok((Object) map);
                 })

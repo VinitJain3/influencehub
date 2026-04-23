@@ -33,6 +33,8 @@ public class CollaborationRequest {
 
     private String status; // PENDING, ACCEPTED, REJECTED, COMPLETED
 
+    private String initiatedBy; // INFLUENCER (applied to campaign) | BRAND (requested influencer)
+
     private LocalDateTime timestamp;
 
     @PrePersist

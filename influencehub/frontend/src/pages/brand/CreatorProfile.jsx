@@ -20,7 +20,7 @@ export default function CreatorProfile() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [description, setDescription] = useState('')
-  const [requestSent, setRequestSent] = useState(false)
+  const [requestStatus, setRequestStatus] = useState(null)
   const [sending, setSending] = useState(false)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [similar, setSimilar] = useState([])
@@ -30,7 +30,10 @@ export default function CreatorProfile() {
   useEffect(() => {
     setLoading(true)
     client.get(`/api/creators/${id}`)
-      .then(res => setCreator(res.data))
+      .then(res => {
+        setCreator(res.data)
+        setRequestStatus(res.data.requestStatus)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
     client.get(`/api/creators/${id}/similar`)
@@ -42,7 +45,7 @@ export default function CreatorProfile() {
     setSending(true)
     try {
       await client.post('/api/requests', { creatorId: creator?.userId, description })
-      setRequestSent(true)
+      setRequestStatus('pending')
       toast.success('Collaboration request sent!')
       setTimeout(() => setIsRequestModalOpen(false), 2000)
     } catch { toast.error('Failed to send request') }
@@ -61,33 +64,72 @@ export default function CreatorProfile() {
     return <AppLayout role="brand"><EmptyState icon={CheckCircle} title="Creator not found" action={{ label: '← Back to Discover', onClick: () => navigate('/brand/discover') }} /></AppLayout>
   }
 
+  // Stat keys — match what InfluencerProfileController returns
+  const statLabels = [
+    { label: 'Followers',       key: 'Followers' },
+    { label: 'Engagement Rate', key: 'EngagementRate' },
+    { label: 'Posts / Month',   key: 'PostsMonth' },
+    { label: 'Avg Reach',       key: 'AvgReach' },
+  ]
+
+  const avatarSrc = creator?.avatar
+  const coverSrc  = creator?.coverPhoto
+
   return (
     <AppLayout role="brand">
+      {/* Breadcrumb */}
       <Link to="/brand/discover" className="text-[13px] text-[#108A00] hover:underline mb-[12px] inline-block">Discover Creators</Link>
       <span className="text-[13px] text-[#888888] mx-[6px]">›</span>
       <span className="text-[13px] text-[#888888]">{creator?.name || '--'}</span>
 
       <div className="flex gap-[24px] items-start mt-[16px]">
         <div className="flex-1 min-w-0 flex flex-col gap-[20px]">
-          {/* Hero Card */}
+
+          {/* Hero Card — matches influencer profile layout */}
           <Card className="!p-0 overflow-hidden relative">
-            <div className="h-[150px] bg-[#F0F0EB]" />
-            <Avatar name={creator?.name} src={creator?.avatar} size={64}
-              className="absolute top-[122px] left-[24px] border-[3px] border-white" />
-            {!loading && (
-              <div className="absolute top-[158px] right-[20px] flex gap-[8px]">
-                <Button variant="ghost-dark" size="sm" onClick={startChat} icon={MessageSquare}>Message</Button>
-                <Button size="sm" onClick={() => setIsRequestModalOpen(true)}>Request Collaboration</Button>
+            {/* Cover photo or placeholder */}
+            <div
+              className="h-[140px]"
+              style={{
+                background: coverSrc
+                  ? `url(${coverSrc}) center/cover no-repeat`
+                  : '#F0F0EB'
+              }}
+            />
+
+            <div className="relative px-[24px] pb-[24px] pt-[56px]">
+              {/* Avatar — aligned same as influencer side */}
+              <div className="absolute top-[-36px] left-[24px]">
+                {avatarSrc
+                  ? <img src={avatarSrc} alt={creator?.name} className="w-[72px] h-[72px] rounded-full object-cover border-[4px] border-white shadow" />
+                  : <Avatar name={creator?.name} size={72} className="border-[4px] border-white" />
+                }
               </div>
-            )}
-            <div className="pt-[44px] px-[24px] pb-[22px]">
+
+              {/* Action buttons */}
+              {!loading && (
+                <div className="absolute top-[16px] right-[20px] flex gap-[8px]">
+                  {requestStatus === 'accepted' ? (
+                    <Button size="sm" onClick={startChat} icon={MessageSquare}>Message Creator</Button>
+                  ) : requestStatus === 'pending' ? (
+                    <Button variant="ghost-dark" size="sm" disabled icon={CheckCircle}>Request Sent</Button>
+                  ) : (
+                    <>
+                      <Button variant="ghost-dark" size="sm" onClick={startChat} icon={MessageSquare}>Message</Button>
+                      <Button size="sm" onClick={() => setIsRequestModalOpen(true)}>Request Collaboration</Button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Profile info */}
               {loading ? <Skeleton height={24} width={200} /> : (
                 <>
                   <h1 className="text-[22px] font-bold text-[#1C1C1C]">{creator?.name}</h1>
-                  <p className="text-[14px] text-[#888888]">@{creator?.handle}</p>
+                  <p className="text-[14px] text-[#108A00]">@{creator?.handle}</p>
                   <div className="flex items-center gap-[8px] mt-[6px] flex-wrap">
                     {creator?.niche && <TagPill label={creator.niche} />}
-                    <span className="text-[13px] text-[#888888]">{creator?.followers || '--'} Followers</span>
+                    {creator?.followers && <span className="text-[13px] text-[#888888]">{creator.followers} Followers</span>}
                   </div>
                   {creator?.location && (
                     <div className="flex items-center gap-[4px] mt-[6px] text-[13px] text-[#888888]">
@@ -114,19 +156,19 @@ export default function CreatorProfile() {
 
           {/* Stats */}
           <div className="grid grid-cols-4 gap-[16px]">
-            {['Total Followers','Avg Engagement','Posts/Month','Avg Reach'].map(label => (
-              <StatCard key={label} label={label} value={creator?.stats?.[label.replace(/\s/g,'')] ?? '--'} loading={loading} />
+            {statLabels.map(({ label, key }) => (
+              <StatCard key={key} label={label} value={creator?.stats?.[key] ?? '--'} loading={loading} />
             ))}
           </div>
 
           {/* Portfolio */}
           <Card>
-            <h3 className="text-[16px] font-semibold text-[#1C1C1C] mb-[12px]">Portfolio</h3>
+            <h3 className="text-[16px] font-semibold text-[#1C1C1C] mb-[16px]">Portfolio</h3>
             {creator?.portfolio?.length ? (
-              <div className="grid grid-cols-3 gap-[10px]">
+              <div className="grid grid-cols-3 gap-[12px]">
                 {creator.portfolio.map((img, i) => (
-                  <div key={i} className="h-[150px] bg-[#F0F0EB] rounded-[8px] overflow-hidden">
-                    <img src={img} alt="Portfolio" className="w-full h-full object-cover" />
+                  <div key={i} className="h-[160px] rounded-[10px] overflow-hidden bg-[#F0F0EB]">
+                    <img src={img} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -158,13 +200,14 @@ export default function CreatorProfile() {
         </div>
       </div>
 
+      {/* Request Collaboration Modal */}
       <Modal
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         title="Request Collaboration"
         size="sm"
         footer={
-          !requestSent && (
+          (!requestStatus || requestStatus === 'rejected') && (
             <div className="flex w-full gap-[12px]">
               <Button variant="ghost-dark" className="flex-1" onClick={() => setIsRequestModalOpen(false)}>Cancel</Button>
               <Button className="flex-1" loading={sending} onClick={sendRequest}>
@@ -175,14 +218,17 @@ export default function CreatorProfile() {
         }
       >
         <div className="flex items-center gap-[12px] mb-[20px] p-[16px] bg-[#F5F5F0] rounded-[8px]">
-          <Avatar name={creator?.name} src={creator?.avatar} size={48} />
+          {avatarSrc
+            ? <img src={avatarSrc} alt={creator?.name} className="w-[48px] h-[48px] rounded-full object-cover" />
+            : <Avatar name={creator?.name} size={48} />
+          }
           <div>
             <p className="text-[15px] font-bold text-[#1C1C1C]">{creator?.name || '--'}</p>
             <p className="text-[13px] text-[#888888]">@{creator?.handle}</p>
           </div>
         </div>
 
-        {requestSent ? (
+        {requestStatus === 'pending' ? (
           <div className="text-center py-[24px]">
             <div className="w-[48px] h-[48px] bg-[#108A0015] rounded-full flex items-center justify-center mx-auto mb-[12px]">
               <CheckCircle size={24} className="text-[#108A00]" />
@@ -192,13 +238,13 @@ export default function CreatorProfile() {
           </div>
         ) : (
           <div className="space-y-[16px]">
-            <Textarea 
-              label="Description (Optional)" 
-              name="description" 
-              rows={4} 
+            <Textarea
+              label="Description (Optional)"
+              name="description"
+              rows={4}
               placeholder="Briefly describe what you're looking for and why you'd like to work with this creator..."
-              value={description} 
-              onChange={e => setDescription(e.target.value)} 
+              value={description}
+              onChange={e => setDescription(e.target.value)}
             />
             <p className="text-[12px] text-[#888888] italic">
               The creator will be notified. You can discuss details once they accept.
