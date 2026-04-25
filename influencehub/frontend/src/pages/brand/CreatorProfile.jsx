@@ -110,14 +110,16 @@ export default function CreatorProfile() {
               {!loading && (
                 <div className="absolute top-[16px] right-[20px] flex gap-[8px]">
                   {requestStatus === 'accepted' ? (
+                    // Only show Message AFTER request is accepted
                     <Button size="sm" onClick={startChat} icon={MessageSquare}>Message Creator</Button>
                   ) : requestStatus === 'pending' ? (
+                    // Request sent, awaiting creator response
                     <Button variant="ghost-dark" size="sm" disabled icon={CheckCircle}>Request Sent</Button>
                   ) : (
-                    <>
-                      <Button variant="ghost-dark" size="sm" onClick={startChat} icon={MessageSquare}>Message</Button>
-                      <Button size="sm" onClick={() => setIsRequestModalOpen(true)}>Request Collaboration</Button>
-                    </>
+                    // No request yet (null) OR previously rejected → allow sending request
+                    <Button size="sm" onClick={() => setIsRequestModalOpen(true)}>
+                      {requestStatus === 'rejected' ? 'Request Again' : 'Request Collaboration'}
+                    </Button>
                   )}
                 </div>
               )}

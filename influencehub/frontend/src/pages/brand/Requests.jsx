@@ -20,8 +20,8 @@ export default function Requests() {
   const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('all')
   const [page, setPage] = useState(1)
-  const [allRequests, setAllRequests] = useState([]) // full list from API
-  const [requests, setRequests] = useState([])       // filtered list
+  const [allRequests, setAllRequests] = useState([])
+  const [requests, setRequests] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [reviewModal, setReviewModal] = useState(null)
@@ -30,6 +30,8 @@ export default function Requests() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
+  const campaignFilter = searchParams.get('campaign')
+
   const startChat = async (userId) => {
     try {
       const res = await client.post('/api/conversations', { otherUserId: userId })
@@ -37,12 +39,11 @@ export default function Requests() {
     } catch { toast.error('Failed to start conversation') }
   }
 
-  const campaignFilter = searchParams.get('campaign')
-
   const fetchRequests = () => {
     setLoading(true)
     client.get('/api/brand/requests')
       .then(res => {
+        // Backend now returns { requests: [...], total: N }
         const data = res.data.requests || (Array.isArray(res.data) ? res.data : [])
         setAllRequests(data)
       })
@@ -50,14 +51,17 @@ export default function Requests() {
       .finally(() => setLoading(false))
   }
 
-  // Filter client-side whenever tab or allRequests changes
+  // Client-side tab filtering
   useEffect(() => {
-    const filtered = activeTab === 'all'
+    let filtered = activeTab === 'all'
       ? allRequests
       : allRequests.filter(r => r.status?.toLowerCase() === activeTab)
+    if (campaignFilter) {
+      filtered = filtered.filter(r => String(r.campaignId) === campaignFilter)
+    }
     setRequests(filtered)
     setTotal(filtered.length)
-  }, [activeTab, allRequests])
+  }, [activeTab, allRequests, campaignFilter])
 
   useEffect(() => { fetchRequests() }, [])
 
@@ -65,15 +69,14 @@ export default function Requests() {
     setActing(true)
     try {
       await client.put(`/api/requests/${id}/status`, { status, reason })
-      // Update local state so UI reflects new status without refetch
       const updatedAll = allRequests.map(r =>
-        r.id === id ? { ...r, status: status.toUpperCase() } : r
+        r.id === id ? { ...r, status: status.toLowerCase() } : r
       )
       setAllRequests(updatedAll)
-      toast.success(`Request ${status.toLowerCase()}ed successfully`)
+      toast.success(`Request ${status === 'ACCEPTED' ? 'accepted' : 'rejected'}`)
       setReviewModal(null)
       setRejectReason('')
-    } catch (err) {
+    } catch {
       toast.error('Action failed. Please try again.')
     } finally {
       setActing(false)
@@ -82,7 +85,10 @@ export default function Requests() {
 
   return (
     <AppLayout role="brand">
-      <h1 className="text-[24px] font-bold text-[#1C1C1C] mb-[20px]">Collaboration Requests</h1>
+      <h1 className="text-[24px] font-bold text-[#1C1C1C] mb-[4px]">Incoming Requests</h1>
+      <p className="text-[13px] text-[#888888] mb-[20px]">
+        Collaboration requests from creators applying to your campaigns
+      </p>
 
       {/* Tabs */}
       <div className="flex gap-[4px] mb-[20px]">
@@ -103,80 +109,88 @@ export default function Requests() {
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
-          {[1,2,3,4].map(i => <Skeleton key={i} height={180} />)}
+          {[1,2,3,4].map(i => <Skeleton key={i} height={200} />)}
         </div>
       ) : !requests.length ? (
-        <Card><EmptyState icon={Inbox} title="No requests found" description="Requests you send to creators or applications from creators will appear here." /></Card>
+        <Card>
+          <EmptyState
+            icon={Inbox}
+            title={activeTab === 'all' ? 'No requests yet' : `No ${activeTab} requests`}
+            description="When creators apply to your campaigns, their requests will appear here."
+          />
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-          {requests.map(req => {
-            const isOutbound = req.initiatedBy === 'BRAND'
-            return (
-              <Card key={req.id} className="flex flex-col">
-                <div className="flex justify-between items-start mb-[12px]">
-                  <div className="flex items-center gap-[12px]">
-                    <Avatar name={req.creatorName} size={40} />
-                    <div className="min-w-0">
+          {requests.map(req => (
+            <Card key={req.id} className="flex flex-col">
+              {/* Header: creator info + status */}
+              <div className="flex justify-between items-start mb-[12px]">
+                <div className="flex items-center gap-[12px]">
+                  <Avatar name={req.creatorName} size={40} />
+                  <div className="min-w-0">
+                    <button
+                      onClick={() => req.creatorProfileId && navigate(`/brand/creator/${req.creatorProfileId}`)}
+                      className={`text-[15px] font-semibold text-[#1C1C1C] truncate block max-w-[140px] text-left ${req.creatorProfileId ? 'hover:text-[#108A00] cursor-pointer' : ''}`}
+                    >
+                      {req.creatorName}
+                    </button>
+                    {req.creatorProfileId && (
                       <button
-                        onClick={() => navigate(`/brand/creator/${req.creatorId}`)}
-                        className="text-[15px] font-semibold text-[#1C1C1C] hover:text-[#108A00] truncate block max-w-[150px] text-left cursor-pointer"
-                        title="View Profile"
+                        onClick={() => navigate(`/brand/creator/${req.creatorProfileId}`)}
+                        className="flex items-center gap-[3px] text-[11px] text-[#108A00] hover:underline cursor-pointer mt-[1px]"
                       >
-                        {req.creatorName}
+                        <ExternalLink size={10} /> View Profile
                       </button>
-                      <p className="text-[12px] text-[#888888]">{req.date || '--'}</p>
-                    </div>
-                  </div>
-                  <StatusChip status={req.status} />
-                </div>
-                
-                {/* Outbound requests just have a message, inbound usually have a campaign and rate */}
-                <div className="flex-1 flex flex-col gap-[8px] mb-[16px]">
-                  {!isOutbound && req.campaignTitle && (
-                    <div className="bg-[#FAFAF8] p-[8px] rounded-[6px] border border-[#F0F0EB]">
-                      <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[2px]">Applied to Campaign</p>
-                      <p className="text-[13px] font-semibold text-[#1C1C1C] line-clamp-1">{req.campaignTitle}</p>
-                    </div>
-                  )}
-                  
-                  {!isOutbound && req.proposedRate && (
-                    <div>
-                      <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[2px]">Proposed Rate</p>
-                      <p className="text-[16px] font-bold text-[#108A00]">₹{req.proposedRate}</p>
-                    </div>
-                  )}
-
-                  <div className="mt-[4px]">
-                    <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[4px]">Message</p>
-                    <p className="text-[13px] text-[#444444] line-clamp-3 leading-[1.5]">
-                      {req.message || <span className="italic text-[#BBBBBB]">No message provided</span>}
-                    </p>
+                    )}
+                    <p className="text-[12px] text-[#888888]">{req.date || '--'}</p>
                   </div>
                 </div>
+                <StatusChip status={req.status} />
+              </div>
 
-                <div className="pt-[16px] border-t border-[#F0F0EB] flex gap-[8px] justify-end mt-auto">
-                  {(req.status === 'PENDING' || req.status === 'pending') && (
-                    isOutbound ? (
-                      <span className="text-[12px] text-[#888888] font-medium py-[4px]">Awaiting creator response</span>
-                    ) : (
-                      <>
-                        <Button variant="ghost-dark" size="sm" onClick={() => setReviewModal(req)}>Reject</Button>
-                        <Button size="sm" onClick={() => handleAction(req.id, 'ACCEPTED')}>Accept</Button>
-                      </>
-                    )
-                  )}
-                  {(req.status === 'ACCEPTED' || req.status === 'accepted') && (
-                    <Button variant="ghost-green" size="sm" onClick={() => startChat(req.creatorId)}>Message Creator</Button>
-                  )}
-                  {(req.status === 'REJECTED' || req.status === 'rejected') && (
-                    <span className="text-[12px] text-[#888888] font-medium py-[4px]">
-                      {isOutbound ? 'Declined by creator' : 'Rejected'}
-                    </span>
-                  )}
+              {/* Campaign applied to */}
+              {req.campaignTitle && (
+                <div className="bg-[#FAFAF8] p-[8px] rounded-[6px] border border-[#F0F0EB] mb-[8px]">
+                  <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[2px]">Applied to Campaign</p>
+                  <p className="text-[13px] font-semibold text-[#1C1C1C] line-clamp-1">{req.campaignTitle}</p>
                 </div>
-              </Card>
-            )
-          })}
+              )}
+
+              {/* Proposed rate if present */}
+              {req.proposedRate && (
+                <div className="mb-[8px]">
+                  <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[2px]">Proposed Rate</p>
+                  <p className="text-[16px] font-bold text-[#108A00]">₹{req.proposedRate}</p>
+                </div>
+              )}
+
+              {/* Message */}
+              <div className="flex-1 mb-[16px]">
+                <p className="text-[10px] uppercase font-semibold text-[#888888] mb-[4px]">Message</p>
+                <p className="text-[13px] text-[#444444] line-clamp-3 leading-[1.5]">
+                  {req.message || <span className="italic text-[#BBBBBB]">No message provided</span>}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-[16px] border-t border-[#F0F0EB] flex gap-[8px] justify-end mt-auto">
+                {req.status === 'pending' && (
+                  <>
+                    <Button variant="ghost-dark" size="sm" onClick={() => setReviewModal(req)}>Reject</Button>
+                    <Button size="sm" onClick={() => handleAction(req.id, 'ACCEPTED')}>Accept</Button>
+                  </>
+                )}
+                {req.status === 'accepted' && (
+                  <Button variant="ghost-green" size="sm" onClick={() => startChat(req.creatorId)}>
+                    Message Creator
+                  </Button>
+                )}
+                {req.status === 'rejected' && (
+                  <span className="text-[12px] text-[#888888] font-medium py-[4px]">Rejected</span>
+                )}
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
@@ -206,7 +220,7 @@ export default function Requests() {
           <div>
             <p className="text-[14px] font-semibold">{reviewModal?.creatorName}</p>
             <p className="text-[12px] text-[#888888]">
-              {reviewModal?.message ? `"${reviewModal.message.slice(0, 60)}${reviewModal.message.length > 60 ? '...' : ''}"` : 'No description provided'}
+              {reviewModal?.campaignTitle || 'Direct request'}
             </p>
           </div>
         </div>

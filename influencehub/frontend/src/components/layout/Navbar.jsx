@@ -19,7 +19,7 @@ function MarketingNavbar() {
       </div>
       <div className="flex items-center gap-[12px]">
         <Link to="/login" className="text-[14px] font-medium text-[#444444] hover:text-[#1C1C1C] transition-colors">Sign In</Link>
-        <Link to="/register"><Button size="sm">Join Free</Button></Link>
+        <Link to="/register"><Button size="sm">Register</Button></Link>
       </div>
     </nav>
   )
@@ -86,7 +86,7 @@ function AppNavbar() {
         </button>
         <div className="w-[1px] h-[24px] bg-[#E0E0DB] mx-[8px]" />
         <DropdownMenu
-          trigger={<Avatar name={user?.name || 'User'} src={user?.avatar} size={34} />}
+          trigger={<Avatar name={user?.companyName || user?.name || 'User'} src={user?.avatar} size={34} />}
           items={menuItems}
           align="right"
         />

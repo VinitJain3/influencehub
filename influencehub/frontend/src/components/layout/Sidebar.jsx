@@ -35,7 +35,7 @@ export default function Sidebar({ role }) {
     <aside className="fixed top-[56px] left-0 bottom-0 w-[232px] bg-white border-r border-[#E0E0DB] flex flex-col overflow-y-auto z-[90]">
       {/* Top section */}
       <div className="p-[16px] border-b border-[#E0E0DB] flex items-center gap-[10px]">
-        <Avatar name={user?.name || 'User'} src={user?.avatar} size={44} />
+        <Avatar name={user?.companyName || user?.name || 'User'} src={user?.avatar} size={44} />
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-[#1C1C1C] truncate">
             {role === 'brand' ? user?.companyName || user?.name || '--' : `@${user?.handle || user?.name || '--'}`}

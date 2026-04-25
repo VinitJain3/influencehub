@@ -51,11 +51,20 @@ public class AuthController {
 
         String token = jwtUtil.generateToken(existingUser.getEmail());
 
+        // For brands, include companyName from BrandProfile
+        String companyName = null;
+        if ("brand".equalsIgnoreCase(existingUser.getRole())) {
+            companyName = brandProfileRepository.findByUserId(existingUser.getId())
+                    .map(bp -> bp.getBrandName())
+                    .orElse(null);
+        }
+
         return ResponseEntity.ok(LoginResponse.of(
                 existingUser.getName(),
                 existingUser.getEmail(),
                 token,
-                existingUser.getRole()
+                existingUser.getRole(),
+                companyName
         ));
     }
 
@@ -97,7 +106,8 @@ public class AuthController {
                 user.getName(),
                 user.getEmail(),
                 token,
-                "brand"
+                "brand",
+                request.getCompanyName()
         ));
     }
 

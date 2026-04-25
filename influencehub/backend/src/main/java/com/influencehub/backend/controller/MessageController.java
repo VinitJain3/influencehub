@@ -61,6 +61,16 @@ public class MessageController {
         return null;
     }
 
+    private String resolveBrandName(User user) {
+        if (user == null) return "--";
+        if ("brand".equalsIgnoreCase(user.getRole())) {
+            return brandProfileRepository.findByUserId(user.getId())
+                    .map(bp -> bp.getBrandName() != null && !bp.getBrandName().isBlank() ? bp.getBrandName() : user.getName())
+                    .orElse(user.getName());
+        }
+        return user.getName();
+    }
+
     @GetMapping
     public ResponseEntity<?> getConversations(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         User user = getCurrentUser(authHeader);
@@ -71,7 +81,7 @@ public class MessageController {
             User other = c.getUser1().getId().equals(user.getId()) ? c.getUser2() : c.getUser1();
             return ConversationResponse.builder()
                     .id(c.getId())
-                    .name(other.getName())
+                    .name(resolveBrandName(other))
                     .avatar(null)
                     .lastMessage(c.getLastMessage())
                     .lastTime(c.getLastTimestamp() != null ? c.getLastTimestamp().toString() : "")
@@ -177,7 +187,7 @@ public class MessageController {
 
         // Notify recipient
         User recipient = conv.getUser1().getId().equals(user.getId()) ? conv.getUser2() : conv.getUser1();
-        notificationService.notify(recipient, "message", "New message from " + user.getName(), "/messages?conversationId=" + conv.getId());
+        notificationService.notify(recipient, "message", "New message from " + resolveBrandName(user), "/messages?conversationId=" + conv.getId());
 
         return ResponseEntity.ok(MessageResponse.builder()
                 .id(msg.getId())

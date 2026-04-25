@@ -2,7 +2,9 @@ package com.influencehub.backend.brand.controller;
 
 import com.influencehub.backend.config.JwtUtil;
 import com.influencehub.backend.brand.model.Campaign;
+import com.influencehub.backend.brand.model.BrandProfile;
 import com.influencehub.backend.model.User;
+import com.influencehub.backend.brand.repository.BrandProfileRepository;
 import com.influencehub.backend.brand.repository.CampaignRepository;
 import com.influencehub.backend.repository.UserRepository;
 import com.influencehub.backend.repository.CollaborationRequestRepository;
@@ -36,6 +38,17 @@ public class CampaignController {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private BrandProfileRepository brandProfileRepository;
+
+    /** Resolves a brand user's display name: BrandProfile.brandName first, fallback to user.getName() */
+    private String resolveBrandName(User brand) {
+        if (brand == null) return "--";
+        return brandProfileRepository.findByUserId(brand.getId())
+                .map(bp -> bp.getBrandName() != null && !bp.getBrandName().isBlank() ? bp.getBrandName() : brand.getName())
+                .orElse(brand.getName());
+    }
+
     private User getCurrentUser(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) return null;
         String token = authHeader.substring(7);
@@ -51,21 +64,29 @@ public class CampaignController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String budget,
             @RequestParam(required = false) String sort,
+            @RequestParam(required = false) Long brandId,
             @RequestParam(defaultValue = "1") int page) {
 
         List<Campaign> campaigns = campaignRepository.findAll();
 
-        // Implement simple filtering if search or budget is provided...
-        // For now, we'll return all and map to the frontend expected shape.
+        // Filter by brandId if provided (for influencer "View Brand's Campaigns" feature)
+        if (brandId != null) {
+            campaigns = campaigns.stream()
+                    .filter(c -> c.getBrand() != null && c.getBrand().getId().equals(brandId))
+                    .collect(Collectors.toList());
+        }
+
         List<Map<String, Object>> responseList = campaigns.stream().map(c -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
             map.put("title", c.getTitle());
             map.put("description", c.getDescription());
             if (c.getBrand() != null) {
-                map.put("brandName", c.getBrand().getName());
+                // Use brand company name, not the owner's personal name
+                map.put("brandName", resolveBrandName(c.getBrand()));
+                map.put("brandId", c.getBrand().getId());
             }
-            map.put("verified", true); // Placeholder
+            map.put("verified", true);
             map.put("contentTypes", c.getContentTypes());
             map.put("platforms", c.getPlatforms());
             map.put("budget", c.getBudgetMax() != null ? String.format("%.0f", c.getBudgetMax()) : "--");
@@ -153,7 +174,7 @@ public class CampaignController {
                     map.put("location", c.getLocation());
                     
                     if (c.getBrand() != null) {
-                        map.put("brandName", c.getBrand().getName());
+                        map.put("brandName", resolveBrandName(c.getBrand()));
                         map.put("brandId", c.getBrand().getId());
                     }
                     map.put("verified", true);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SearchX } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Card from '../../components/ui/Card'
@@ -47,18 +47,22 @@ export default function BrowseCampaigns() {
   const [results, setResults] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  // Map of campaignId → { status, id } for applied campaigns
   const [applications, setApplications] = useState({})
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  // Fetch campaigns
+  const brandIdFilter = searchParams.get('brandId')
+
+  // Fetch campaigns (filtered by brandId if provided via URL param)
   useEffect(() => {
     setLoading(true)
-    client.get('/api/campaigns', { params: { sort, page } })
+    const params = { sort, page }
+    if (brandIdFilter) params.brandId = brandIdFilter
+    client.get('/api/campaigns', { params })
       .then(res => { setResults(res.data.campaigns || []); setTotal(res.data.total || 0) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [page, sort])
+  }, [page, sort, brandIdFilter])
 
   // Fetch the influencer's own applications once
   useEffect(() => {

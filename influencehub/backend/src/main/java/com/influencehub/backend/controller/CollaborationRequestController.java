@@ -50,6 +50,17 @@ public class CollaborationRequestController {
     @Autowired
     private com.influencehub.backend.service.NotificationService notificationService;
 
+    @Autowired
+    private com.influencehub.backend.brand.repository.BrandProfileRepository brandProfileRepository;
+
+    /** Returns brand's company name from BrandProfile, falls back to user.getName() */
+    private String resolveBrandName(User brand) {
+        if (brand == null) return "--";
+        return brandProfileRepository.findByUserId(brand.getId())
+                .map(bp -> bp.getBrandName() != null && !bp.getBrandName().isBlank() ? bp.getBrandName() : brand.getName())
+                .orElse(brand.getName());
+    }
+
     private User getCurrentUser(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer "))
             return null;
@@ -170,7 +181,7 @@ public class CollaborationRequestController {
             notificationService.notify(
                     creatorOpt.get(),
                     "request",
-                    currentUser.getName() + " sent you a collaboration request for " + campaignName,
+                    resolveBrandName(currentUser) + " sent you a collaboration request for " + campaignName,
                     "/influencer/requests");
 
             Map<String, Object> response = new HashMap<>();
@@ -185,7 +196,9 @@ public class CollaborationRequestController {
 
     /**
      * GET /api/brand/requests
-     * Returns all collaboration requests sent by the authenticated brand.
+     * Returns INBOUND collaboration requests received by the brand
+     * (i.e. requests initiated by influencers applying to the brand's campaigns).
+     * Brand-sent outbound requests are tracked via the creator profile endpoint.
      */
     @GetMapping("/brand/requests")
     public ResponseEntity<?> getBrandRequests(
@@ -195,7 +208,11 @@ public class CollaborationRequestController {
         if (user == null)
             return ResponseEntity.status(401).body("Unauthorized");
 
-        List<CollaborationRequest> requests = requestRepository.findAllByBrand(user);
+        // Only INFLUENCER-initiated requests (inbound to brand)
+        List<CollaborationRequest> requests = requestRepository.findAllByBrand(user)
+                .stream()
+                .filter(r -> "INFLUENCER".equals(r.getInitiatedBy()))
+                .collect(Collectors.toList());
         if (status != null && !status.isEmpty()) {
             requests = requests.stream()
                     .filter(r -> status.equalsIgnoreCase(r.getStatus()))
@@ -207,10 +224,14 @@ public class CollaborationRequestController {
             map.put("id", r.getId());
             if (r.getCampaign() != null) {
                 map.put("campaignTitle", r.getCampaign().getTitle());
+                map.put("campaignId", r.getCampaign().getId());
                 map.put("category", r.getCampaign().getIndustry());
             }
             map.put("creatorName", r.getCreator().getName());
             map.put("creatorId", r.getCreator().getId());
+            // Look up InfluencerProfile id so brand can link to creator profile
+            influencerProfileRepository.findByUserId(r.getCreator().getId())
+                .ifPresent(p -> map.put("creatorProfileId", p.getId()));
             map.put("status", r.getStatus() != null ? r.getStatus().toLowerCase() : "pending");
             map.put("initiatedBy", r.getInitiatedBy());
             map.put("date", r.getTimestamp() != null ? r.getTimestamp().toLocalDate().toString() : "--");
@@ -232,7 +253,8 @@ public class CollaborationRequestController {
 
     /**
      * GET /api/influencer/requests
-     * Returns all collaboration requests received by the authenticated influencer.
+     * Returns INBOUND brand-initiated requests received by the influencer.
+     * Also includes brandId so influencer can browse that brand's campaigns.
      */
     @GetMapping("/influencer/requests")
     public ResponseEntity<?> getInfluencerRequests(
@@ -242,6 +264,7 @@ public class CollaborationRequestController {
         if (user == null)
             return ResponseEntity.status(401).body("Unauthorized");
 
+        // Only BRAND-initiated requests (inbound to influencer)
         List<CollaborationRequest> requests = requestRepository.findAllByCreator(user)
                 .stream()
                 .filter(r -> "BRAND".equals(r.getInitiatedBy()))
@@ -259,17 +282,13 @@ public class CollaborationRequestController {
                 map.put("campaignTitle", r.getCampaign().getTitle());
                 map.put("category", r.getCampaign().getIndustry());
             }
-            map.put("brandName", r.getBrand() != null ? r.getBrand().getName() : "--");
+            map.put("brandName", r.getBrand() != null ? resolveBrandName(r.getBrand()) : "--");
             map.put("brandId", r.getBrand() != null ? r.getBrand().getId() : null);
             map.put("status", r.getStatus() != null ? r.getStatus().toLowerCase() : "pending");
             map.put("date", r.getTimestamp() != null ? r.getTimestamp().toLocalDate().toString() : "--");
 
             String msg = r.getDescription() != null ? r.getDescription() : r.getMessage();
             map.put("message", msg);
-            if (msg != null && msg.contains("Proposed Rate: ₹")) {
-                int idx = msg.indexOf("Proposed Rate: ₹");
-                map.put("proposedRate", msg.substring(idx + 16).trim());
-            }
             return map;
         }).collect(Collectors.toList());
 

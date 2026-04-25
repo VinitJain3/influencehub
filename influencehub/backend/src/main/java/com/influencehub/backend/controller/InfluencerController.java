@@ -48,16 +48,48 @@ public class InfluencerController {
     public ResponseEntity<CreatorListResponse> getCreators(
             @RequestParam(required = false) List<String> niches,
             @RequestParam(required = false) String sort,
-            @RequestParam(defaultValue = "1") int page) {
-        // For now, simplicity: return all, filtered by niche if provided
+            @RequestParam(defaultValue = "1") int page,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        User currentUser = getCurrentUser(authHeader);
+
         List<InfluencerProfile> profiles = (niches != null && !niches.isEmpty())
                 ? influencerRepository.findAll().stream()
                         .filter(p -> niches.contains(p.getNiche()))
                         .collect(Collectors.toList())
                 : influencerRepository.findAll();
 
+        // Build a map of creatorUserId → effective collaboration status
+        // We check ALL requests between this brand and each creator (from either side)
+        // to determine the correct button: Message (accepted), Requested (pending), or Request/Request Again
+        Map<Long, String> requestStatusByCreatorUserId = new java.util.HashMap<>();
+        if (currentUser != null && "brand".equalsIgnoreCase(currentUser.getRole())) {
+            // Collect all requests where the brand is involved (either as brand or as the accepting party)
+            List<com.influencehub.backend.model.CollaborationRequest> allBrandRequests = requestRepository.findAllByBrand(currentUser);
+
+            allBrandRequests.stream()
+                    .filter(r -> r.getCreator() != null)
+                    .forEach(r -> {
+                        Long cid = r.getCreator().getId();
+                        String existing = requestStatusByCreatorUserId.get(cid);
+                        String newStatus = r.getStatus() != null ? r.getStatus().toLowerCase() : "pending";
+                        // Priority: accepted > pending > rejected
+                        if (existing == null || "accepted".equals(newStatus) ||
+                                ("pending".equals(newStatus) && !"accepted".equals(existing))) {
+                            requestStatusByCreatorUserId.put(cid, newStatus);
+                        }
+                    });
+        }
+
         List<CreatorDTO> dtos = profiles.stream()
-                .map(this::convertToDTO)
+                .map(p -> {
+                    CreatorDTO dto = convertToDTO(p);
+                    if (p.getUser() != null) {
+                        String rs = requestStatusByCreatorUserId.get(p.getUser().getId());
+                        if (rs != null) dto.setRequestStatus(rs);
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(new CreatorListResponse(dtos, dtos.size()));

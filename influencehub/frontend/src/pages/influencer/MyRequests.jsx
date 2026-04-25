@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Inbox } from 'lucide-react'
+import { Inbox, Briefcase } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Card from '../../components/ui/Card'
 import StatusChip from '../../components/ui/StatusChip'
@@ -54,9 +54,10 @@ export default function MyRequests() {
   const updateStatus = async (id, newStatus) => {
     try {
       await client.put(`/api/requests/${id}/status`, { status: newStatus.toUpperCase() })
-      setAllRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r))
+      // Update local state — keep lowercase to match backend response
+      setAllRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus.toLowerCase() } : r))
       toast.success(`Request ${newStatus === 'accepted' ? 'accepted' : 'declined'}`)
-    } catch (err) {
+    } catch {
       toast.error('Failed to update request status')
     }
   }
@@ -105,19 +106,31 @@ export default function MyRequests() {
                 </p>
               </div>
 
-              <div className="pt-[16px] border-t border-[#F0F0EB] flex gap-[8px] justify-end mt-auto">
-                {req.status === 'pending' && (
-                  <>
-                    <Button variant="ghost-dark" size="sm" onClick={() => updateStatus(req.id, 'rejected')}>Decline</Button>
-                    <Button size="sm" onClick={() => updateStatus(req.id, 'accepted')}>Accept Request</Button>
-                  </>
-                )}
-                {req.status === 'accepted' && (
-                  <Button variant="ghost-green" size="sm" onClick={() => startChat(req.brandId)}>Message Brand</Button>
-                )}
-                {req.status === 'rejected' && (
-                  <span className="text-[12px] text-[#888888] font-medium py-[4px]">Declined</span>
-                )}
+              <div className="pt-[16px] border-t border-[#F0F0EB] flex gap-[8px] justify-between items-center mt-auto">
+                {/* Left: View brand's campaigns */}
+                <button
+                  onClick={() => navigate(`/influencer/campaigns?brandId=${req.brandId}`)}
+                  className="flex items-center gap-[5px] text-[12px] text-[#888888] hover:text-[#108A00] transition-colors cursor-pointer"
+                  title="Browse this brand's campaigns"
+                >
+                  <Briefcase size={13} /> View Brand's Campaigns
+                </button>
+
+                {/* Right: Accept/Decline/Message */}
+                <div className="flex gap-[8px]">
+                  {req.status === 'pending' && (
+                    <>
+                      <Button variant="ghost-dark" size="sm" onClick={() => updateStatus(req.id, 'rejected')}>Decline</Button>
+                      <Button size="sm" onClick={() => updateStatus(req.id, 'accepted')}>Accept</Button>
+                    </>
+                  )}
+                  {req.status === 'accepted' && (
+                    <Button variant="ghost-green" size="sm" onClick={() => startChat(req.brandId)}>Message Brand</Button>
+                  )}
+                  {req.status === 'rejected' && (
+                    <span className="text-[12px] text-[#888888] font-medium py-[4px]">Declined</span>
+                  )}
+                </div>
               </div>
             </Card>
           ))}

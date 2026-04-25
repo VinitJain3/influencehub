@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, SearchX, CheckCircle } from 'lucide-react'
+import { SearchX, CheckCircle, MessageSquare, Send } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -17,10 +17,11 @@ import client from '../../api/client'
 export default function DiscoverCreators() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(true)
-  const [requestModal, setRequestModal] = useState(null) // { creator }
+  // Map of creatorUserId → request status ('pending'|'accepted'|'rejected'|null)
+  const [statusMap, setStatusMap] = useState({})
+  const [requestModal, setRequestModal] = useState(null) // creator object
   const [description, setDescription] = useState('')
   const [sending, setSending] = useState(false)
-  const [requestSent, setRequestSent] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
   const user = useAuthStore((s) => s.user)
@@ -28,18 +29,28 @@ export default function DiscoverCreators() {
   const hours = new Date().getHours()
   const greeting = hours < 12 ? 'morning' : hours < 17 ? 'afternoon' : 'evening'
 
-  useEffect(() => {
+  const loadCreators = useCallback(() => {
     setLoading(true)
     client.get('/api/creators')
-      .then(res => setResults(res.data.creators || []))
+      .then(res => {
+        const creators = res.data.creators || []
+        setResults(creators)
+        // Build statusMap from the per-creator requestStatus returned by backend
+        const map = {}
+        creators.forEach(c => {
+          if (c.requestStatus) map[c.userId] = c.requestStatus
+        })
+        setStatusMap(map)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => { loadCreators() }, [loadCreators])
+
   const openRequestModal = (creator) => {
     setRequestModal(creator)
     setDescription('')
-    setRequestSent(false)
   }
 
   const sendRequest = async () => {
@@ -47,17 +58,54 @@ export default function DiscoverCreators() {
     setSending(true)
     try {
       await client.post('/api/requests', { creatorId: requestModal.userId, description })
-      setRequestSent(true)
+      // Update button immediately to 'pending'
+      setStatusMap(prev => ({ ...prev, [requestModal.userId]: 'pending' }))
       toast.success('Collaboration request sent!')
-      setTimeout(() => {
-        setRequestModal(null)
-        setRequestSent(false)
-      }, 2000)
-    } catch {
-      toast.error('Failed to send request')
+      setRequestModal(null)
+    } catch (err) {
+      const msg = err?.response?.data
+      toast.error(typeof msg === 'string' ? msg : 'Failed to send request')
     } finally {
       setSending(false)
     }
+  }
+
+  const startChat = async (creator) => {
+    try {
+      const res = await client.post('/api/conversations', { otherUserId: creator.userId })
+      navigate(`/messages?conversationId=${res.data.id}`)
+    } catch { toast.error('Failed to start conversation') }
+  }
+
+  // Returns the action button(s) for each creator card based on request status
+  const ActionButtons = ({ creator }) => {
+    const status = statusMap[creator.userId]
+
+    if (status === 'pending') {
+      return (
+        <Button size="sm" fullWidth variant="ghost-dark" disabled icon={CheckCircle}>
+          Requested
+        </Button>
+      )
+    }
+    if (status === 'accepted') {
+      return (
+        <Button size="sm" fullWidth onClick={() => startChat(creator)} icon={MessageSquare}>
+          Message
+        </Button>
+      )
+    }
+    // null or 'rejected' — show View + Request
+    return (
+      <>
+        <Button variant="ghost-dark" size="sm" fullWidth onClick={() => navigate(`/brand/creator/${creator.id}`)}>
+          View
+        </Button>
+        <Button size="sm" fullWidth onClick={() => openRequestModal(creator)}>
+          {status === 'rejected' ? 'Request Again' : 'Request'}
+        </Button>
+      </>
+    )
   }
 
   return (
@@ -68,7 +116,7 @@ export default function DiscoverCreators() {
           Good {greeting}, {user?.companyName || user?.name || 'there'} 👋
         </h2>
         <p className="text-[14px] text-[#888888] mt-[4px]">
-          Now you can discover creators and send collaboration requests directly!
+          Discover creators and send collaboration requests directly!
         </p>
       </div>
 
@@ -97,7 +145,7 @@ export default function DiscoverCreators() {
         ) : (
           <div className="grid grid-cols-3 gap-[14px]">
             {results.map(c => (
-              <Card key={c.id} hoverable className="!p-0 overflow-hidden">
+              <Card key={c.id} className="!p-0 overflow-hidden">
                 <div className="h-[80px] bg-[#F0F0EB] relative">
                   <Avatar name={c.name} size={40} className="absolute -bottom-[20px] left-[14px] border-2 border-white" />
                 </div>
@@ -109,21 +157,7 @@ export default function DiscoverCreators() {
                     <p className="text-[12px] text-[#888888] mt-[4px]">{c.followers} followers</p>
                   )}
                   <div className="flex gap-[6px] mt-[10px]">
-                    <Button
-                      variant="ghost-dark"
-                      size="sm"
-                      fullWidth
-                      onClick={() => navigate(`/brand/creator/${c.id}`)}
-                    >
-                      View
-                    </Button>
-                    <Button
-                      size="sm"
-                      fullWidth
-                      onClick={() => openRequestModal(c)}
-                    >
-                      Request
-                    </Button>
+                    <ActionButtons creator={c} />
                   </div>
                 </div>
               </Card>
@@ -135,54 +169,40 @@ export default function DiscoverCreators() {
       {/* Request Modal */}
       <Modal
         isOpen={!!requestModal}
-        onClose={() => { setRequestModal(null); setRequestSent(false) }}
+        onClose={() => setRequestModal(null)}
         title="Send Collaboration Request"
         size="sm"
         footer={
-          !requestSent && (
-            <div className="flex w-full gap-[12px]">
-              <Button variant="ghost-dark" className="flex-1" onClick={() => setRequestModal(null)}>
-                Cancel
-              </Button>
-              <Button className="flex-1" loading={sending} onClick={sendRequest}>
-                Send Request
-              </Button>
-            </div>
-          )
+          <div className="flex w-full gap-[12px]">
+            <Button variant="ghost-dark" className="flex-1" onClick={() => setRequestModal(null)}>
+              Cancel
+            </Button>
+            <Button className="flex-1" loading={sending} onClick={sendRequest} icon={Send}>
+              Send Request
+            </Button>
+          </div>
         }
       >
-        {requestSent ? (
-          <div className="text-center py-[24px]">
-            <div className="w-[48px] h-[48px] bg-[#108A0015] rounded-full flex items-center justify-center mx-auto mb-[12px]">
-              <CheckCircle size={24} className="text-[#108A00]" />
+        <div className="space-y-[16px]">
+          <div className="flex items-center gap-[12px] p-[12px] bg-[#F5F5F0] rounded-[8px]">
+            <Avatar name={requestModal?.name} size={40} />
+            <div>
+              <p className="text-[14px] font-semibold text-[#1C1C1C]">{requestModal?.name}</p>
+              <p className="text-[12px] text-[#888888]">@{requestModal?.handle}</p>
             </div>
-            <h4 className="text-[18px] font-bold text-[#1C1C1C] mb-[4px]">Request Sent!</h4>
-            <p className="text-[14px] text-[#888888]">
-              {requestModal?.name} has been notified of your interest.
-            </p>
           </div>
-        ) : (
-          <div className="space-y-[16px]">
-            <div className="flex items-center gap-[12px] p-[12px] bg-[#F5F5F0] rounded-[8px]">
-              <Avatar name={requestModal?.name} size={40} />
-              <div>
-                <p className="text-[14px] font-semibold text-[#1C1C1C]">{requestModal?.name}</p>
-                <p className="text-[12px] text-[#888888]">@{requestModal?.handle}</p>
-              </div>
-            </div>
-            <Textarea
-              label="Description (Optional)"
-              name="description"
-              rows={4}
-              placeholder="Briefly describe what you're looking for and why you'd like to work with this creator..."
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
-            <p className="text-[12px] text-[#888888] italic">
-              The creator will be notified. You can discuss details once they accept.
-            </p>
-          </div>
-        )}
+          <Textarea
+            label="Description (Optional)"
+            name="description"
+            rows={4}
+            placeholder="Briefly describe what you're looking for and why you'd like to work with this creator..."
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <p className="text-[12px] text-[#888888] italic">
+            The creator will be notified. You can discuss details once they accept.
+          </p>
+        </div>
       </Modal>
     </AppLayout>
   )
