@@ -14,7 +14,7 @@ export default function Landing() {
       <Navbar variant="marketing" />
 
       {/* Hero Section */}
-      <section className="bg-white pt-[64px]">
+      <section className="bg-white pt-[64px] pb-[100px]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center px-[80px] pt-[80px] pb-[40px]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
